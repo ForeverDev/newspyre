@@ -15,7 +15,7 @@
 typedef struct SpyState SpyState;
 
 struct SpyState {
-	uint8_t*		memory; /* stack from [0, SIZE_STACK), heap from [SIZE_STACK, SIZE_MEMORY) */
+	uint8_t*		memory;
 	const uint8_t*	ip;
 	uint8_t*		sp;
 	uint8_t*		bp;
@@ -24,7 +24,10 @@ struct SpyState {
 
 SpyState*	Spy_newState(uint32_t);
 void		Spy_log(SpyState*, const char*, ...);
-void		Spy_pushInt(SpyState*);
+void		Spy_dump(SpyState*);
+void		Spy_pushIntCode(SpyState*);
+void		Spy_pushIntValue(SpyState*, int64_t);
+int64_t 	Spy_popInt(SpyState*);
 void		Spy_execute(SpyState*, const uint8_t*);
 
 #endif
