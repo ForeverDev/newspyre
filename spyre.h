@@ -34,6 +34,7 @@ struct SpyState {
 
 SpyState*	Spy_newState(uint32_t);
 void		Spy_log(SpyState*, const char*, ...);
+void		Spy_crash(SpyState*, const char*, ...);
 void		Spy_dump(SpyState*);
 void		Spy_pushInt(SpyState*, int64_t);
 uint32_t	Spy_readInt32(SpyState*);

@@ -32,6 +32,16 @@ Spy_log(SpyState* S, const char* format, ...) {
 	va_end(list);
 }
 
+void
+Spy_crash(SpyState* S, const char* format, ...) {
+	printf("SPYRE RUNTIME ERROR: ");
+	va_list list;
+	va_start(list, format);
+	vprintf(format, list);
+	va_end(list);
+	exit(1);
+}
+
 inline void
 Spy_pushInt(SpyState* S, int64_t value) {
 	S->sp += 8;
@@ -105,6 +115,7 @@ Spy_execute(SpyState* S, const uint8_t* bytecode, const uint8_t* static_memory, 
 		&&ile, &&icmp, &&jnz, &&jz,
 		&&jmp, &&call, &&iret, &&ccall
 	};
+
 	/* main interpreter loop */
 	dispatch:
 	goto *opcodes[*S->ip++];
@@ -236,16 +247,14 @@ Spy_execute(SpyState* S, const uint8_t* bytecode, const uint8_t* static_memory, 
 		SpyCFunction* cf = S->c_functions;
 		while (cf && strcmp(cf->identifier, &static_memory[name_index])) cf = cf->next;
 		if (cf) {
-			/* TODO throw runtime error, incorrect number of arguments */
 			/* note -1 represents vararg */
 			if (cf->nargs != nargs && cf->nargs >= 0) {
-				printf("Attempt to call C function '%s' with the incorrect number of arguments\n");
+				Spy_crash(S, "Attempt to call C function '%s' with the incorret number of arguments\n");
 				exit(1);
 			} 
 			cf->function(S);
 		} else {
-			/* TODO throw runtime error, attempt to call undefined C function */
-			printf("Attempt to call undefined C function '%s'\n", &static_memory[name_index]);
+			Spy_crash(S, "Attempt to call undefined C function '%s'\n", &static_memory[name_index]);
 			exit(1);
 		}
 	}
