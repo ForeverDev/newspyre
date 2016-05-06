@@ -39,7 +39,8 @@ SpyL_min(SpyState* S) {
 	int64_t a, b;
 	a = Spy_popInt(S);
 	b = Spy_popInt(S);
-	return a < b ? a : b;
+	Spy_pushInt(S, a < b ? a : b);
+	return 1;
 }
 
 static uint32_t
@@ -47,5 +48,6 @@ SpyL_max(SpyState* S) {
 	int64_t a, b;
 	a = Spy_popInt(S);
 	b = Spy_popInt(S);
-	return a > b ? a : b;
+	Spy_pushInt(S, a > b ? a : b);
+	return 1;
 }

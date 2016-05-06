@@ -74,13 +74,13 @@ Spy_pushFloat(SpyState* S, double value) {
 }
 
 inline double
-Spy_readDouble(SpyState* S) {
+Spy_readFloat(SpyState* S) {
 	S->ip += 8;
 	return *(double *)(S->ip - 8);
 }
 
 inline double
-Spy_popDouble(SpyState* S) {
+Spy_popFloat(SpyState* S) {
 	double result = *(double *)S->sp;
 	S->sp -= 8;
 	return result;
@@ -130,7 +130,10 @@ Spy_execute(SpyState* S, const uint8_t* bytecode, const uint8_t* static_memory, 
 		&&shr, &&and, &&or, &&xor, &&not,
 		&&neg, &&igt, &&ige, &&ilt,
 		&&ile, &&icmp, &&jnz, &&jz,
-		&&jmp, &&call, &&iret, &&ccall
+		&&jmp, &&call, &&iret, &&ccall,
+		&&fpush, &&fadd, &&fsub, &&fmul,
+		&&fdiv, &&fgt, &&fge, &&flt, 
+		&&fle, &&fcmp
 	};
 
 	/* main interpreter loop */
@@ -278,7 +281,54 @@ Spy_execute(SpyState* S, const uint8_t* bytecode, const uint8_t* static_memory, 
 		}
 	}
 	goto dispatch;
+		
+	fpush:
+	Spy_pushFloat(S, Spy_readFloat(S));
+	goto dispatch;
+
+	fadd:
+	Spy_pushFloat(S, Spy_popFloat(S) + Spy_popFloat(S));
+	goto dispatch;
+
+	fsub:
+	a = Spy_popFloat(S);
+	Spy_pushFloat(S, Spy_popFloat(S) - a);
+	goto dispatch;
+
+	fmul:
+	Spy_pushFloat(S, Spy_popFloat(S) * Spy_popFloat(S));
+	goto dispatch;
+
+	fdiv:
+	a = Spy_popFloat(S);
+	Spy_pushFloat(S, Spy_popFloat(S) / a);
+	goto dispatch;
+
+	fgt:
+	a = Spy_popFloat(S);
+	Spy_pushFloat(S, Spy_popFloat(S) > a);
+	goto dispatch;
+
+	fge:
+	a = Spy_popFloat(S);
+	Spy_pushFloat(S, Spy_popFloat(S) >= a);
+	goto dispatch;
+
+	flt:
+	a = Spy_popFloat(S);
+	Spy_pushFloat(S, Spy_popFloat(S) < a);
+	goto dispatch;
+
+	fle:
+	a = Spy_popFloat(S);
+	Spy_pushFloat(S, Spy_popFloat(S) <= a);
+	goto dispatch;
+
+	fcmp:
+	Spy_pushInt(S, Spy_popFloat(S) == Spy_popFloat(S));
+	goto dispatch;
 
 	done:
 	return;
+
 }
