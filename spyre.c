@@ -70,7 +70,7 @@ Spy_popInt(SpyState* S) {
 void
 Spy_dump(SpyState* S) {
 	for (const uint8_t* i = &S->memory[SIZE_ROM]; i != S->sp + 1; i++) {
-		printf("0x%08llx: %02x\n", (uintptr_t)(i - &S->memory[SIZE_ROM]), *i);	
+		printf("0x%08p: %02x\n", i - S->memory, *i);	
 	}
 }
 
@@ -245,17 +245,19 @@ Spy_execute(SpyState* S, const uint8_t* bytecode, const uint8_t* static_memory, 
 		uint32_t nargs = Spy_readInt32(S);
 		uint32_t name_index = Spy_readInt32(S);
 		SpyCFunction* cf = S->c_functions;
-		while (cf && strcmp(cf->identifier, &static_memory[name_index])) cf = cf->next;
+		while (cf && strcmp(cf->identifier, &S->memory[name_index])) cf = cf->next;
 		if (cf) {
 			/* note -1 represents vararg */
 			if (cf->nargs != nargs && cf->nargs >= 0) {
-				Spy_crash(S, "Attempt to call C function '%s' with the incorret number of arguments\n");
-				exit(1);
+				Spy_crash(S, "Attempt to call C function '%s' with the incorret number of arguments (wanted %d, got %d)\n", 
+					&S->memory[name_index],
+					cf->nargs,
+					nargs
+				);
 			} 
 			cf->function(S);
 		} else {
-			Spy_crash(S, "Attempt to call undefined C function '%s'\n", &static_memory[name_index]);
-			exit(1);
+			Spy_crash(S, "Attempt to call undefined C function '%s'\n", &S->memory[name_index]);
 		}
 	}
 	goto dispatch;

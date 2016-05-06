@@ -6,5 +6,6 @@
 void SpyL_initialize(SpyState*);
 
 static uint32_t SpyL_printf(SpyState*);
+static uint32_t SpyL_multiply(SpyState*);
 
 #endif
