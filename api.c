@@ -3,6 +3,9 @@
 
 void SpyL_initialize(SpyState* S) {
 	Spy_pushC(S, "println", SpyL_println, -1);
+
+	Spy_pushC(S, "malloc", SpyL_malloc, 1);
+
 	Spy_pushC(S, "min", SpyL_min, -1);
 	Spy_pushC(S, "max", SpyL_max, -1);
 }
@@ -32,6 +35,11 @@ SpyL_println(SpyState* S) {
 		format++;
 	}
 	return 0;
+}
+
+static uint32_t
+SpyL_malloc(SpyState* S) {
+	
 }
 
 static uint32_t

@@ -4,9 +4,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/* flags */
+/* option flags */
 #define SPY_NOFLAG	0x00
 #define SPY_DEBUG	0x01
+
+/* runtime flags */
+#define SPY_CMPRESULT 0x01
 
 /* constants */
 #define SIZE_MEMORY 0x100000
@@ -15,6 +18,8 @@
 
 typedef struct SpyState SpyState;
 typedef struct SpyCFunction SpyCFunction;
+typedef struct SpyMemoryChunk SpyMemoryChunk;
+
 
 struct SpyCFunction {
 	const char*		identifier;
@@ -23,13 +28,22 @@ struct SpyCFunction {
 	SpyCFunction*	next;
 };
 
+struct SpyMemoryChunk {
+	size_t			size;
+	uint8_t*		absolute_address;
+	uint64_t		vm_address;
+	SpyMemoryChunk*	next;
+};
+
 struct SpyState {
 	uint8_t*		memory;
 	const uint8_t*	ip;
 	uint8_t*		sp;
 	uint8_t*		bp;
-	uint32_t		flags;
+	uint32_t		option_flags;
+	uint32_t		runtime_flags;
 	SpyCFunction*	c_functions;
+	SpyMemoryChunk*	memory_chunks;
 };
 
 SpyState*	Spy_newState(uint32_t);

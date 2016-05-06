@@ -6,14 +6,15 @@
 #include "api.h"
 
 SpyState*
-Spy_newState(uint32_t flags) {
+Spy_newState(uint32_t option_flags) {
 	SpyState* S = (SpyState *)malloc(sizeof(SpyState));
 	S->memory = (uint8_t *)calloc(1, SIZE_MEMORY);
 	S->ip = NULL; /* to be assigned when code is executed */
 	S->sp = &S->memory[SIZE_ROM - 1]; /* stack grows upwards */
 	S->bp = &S->memory[SIZE_ROM - 1];
-	S->flags = flags;
-	S->c_functions = 0;
+	S->option_flags = option_flags;
+	S->runtime_flags = 0;
+	S->c_functions = NULL;
 	SpyL_initialize(S);
 	Spy_log(S, "Spyre state created, %d bytes of memory (%d %s)\n", 
 		SIZE_MEMORY, 
@@ -25,7 +26,7 @@ Spy_newState(uint32_t flags) {
 
 void 
 Spy_log(SpyState* S, const char* format, ...) {
-	if (!(S->flags | SPY_DEBUG)) return;
+	if (!(S->option_flags | SPY_DEBUG)) return;
 	va_list list;
 	va_start(list, format);
 	vprintf(format, list);
