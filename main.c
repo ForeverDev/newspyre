@@ -18,11 +18,11 @@ int main(int argc, char** argv) {
 		0x01, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x18,
 			0x02, 0x00, 0x00, 0x00, 
-			0x15, 0x00, 0x00, 0x00,
+			0x14, 0x00, 0x00, 0x00,
 		0x00
 	};
 
-	static const uint8_t static_memory[] = "printf\0TESTING!!!!!\0mmultiply";
+	static const uint8_t static_memory[] = "printf\0TESTING!!!!!\0multiply";
 	static const size_t  static_memory_size = sizeof(static_memory) / sizeof(uint8_t);
 
 	SpyState* S = Spy_newState(SPY_NOFLAG);

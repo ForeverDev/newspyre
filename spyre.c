@@ -85,9 +85,7 @@ Spy_pushC(SpyState* S, const char* identifier, uint32_t (*function)(SpyState*), 
 		S->c_functions = container;
 	} else {
 		SpyCFunction* at = S->c_functions;
-		while (at->next) {
-			at = at->next;
-		}
+		while (at->next) at = at->next;
 		at->next = container;
 	}
 }
