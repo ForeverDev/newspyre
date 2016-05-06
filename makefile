@@ -1,6 +1,6 @@
 CC = gcc
 CF = -std=c11
-OBJ = spyre.o main.o
+OBJ = spyre.o main.o api.o
 
 all: spy.exe
 
@@ -10,6 +10,9 @@ spy.exe: $(OBJ)
 
 spyre.o: 
 	$(CC) $(CF) -c spyre.c -o spyre.o
+
+api.o:
+	$(CC) $(CF) -c api.c -o api.o
 
 main.o:
 	$(CC) $(CF) -c main.c -o main.o

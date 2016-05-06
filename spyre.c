@@ -2,18 +2,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#include "Spyre.h"
+#include "spyre.h"
+#include "api.h"
 
 SpyState*
 Spy_newState(uint32_t flags) {
 	SpyState* S = (SpyState *)malloc(sizeof(SpyState));
 	S->memory = (uint8_t *)calloc(1, SIZE_MEMORY);
 	S->ip = NULL; /* to be assigned when code is executed */
-	S->sp = &S->memory[0] - 1; /* stack grows upwards */
-	S->bp = &S->memory[0] - 1;
+	S->sp = &S->memory[SIZE_ROM - 1]; /* stack grows upwards */
+	S->bp = &S->memory[SIZE_ROM - 1];
 	S->flags = flags;
-	S->c_functions = NULL;
-	Spy_log(S, "Spyre state created, 0x%08x bytes of memory\n", SIZE_MEMORY);
+	S->c_functions = 0;
+	SpyL_initialize(S);
+	Spy_log(S, "Spyre state created, %d bytes of memory (%d %s)\n", 
+		SIZE_MEMORY, 
+		(SIZE_MEMORY / 0x400) > 0x400 ?: (SIZE_MEMORY / 0x100000),
+		(SIZE_MEMORY / 0x400) > 0x400 ? "KiB" : "MiB"
+	);
 	return S;
 }
 
@@ -53,8 +59,8 @@ Spy_popInt(SpyState* S) {
 
 void
 Spy_dump(SpyState* S) {
-	for (const uint8_t* i = S->memory; i != S->sp + 1; i++) {
-		printf("0x%08llx: %02x\n", (uintptr_t)(i - S->memory), *i);	
+	for (const uint8_t* i = &S->memory[SIZE_ROM]; i != S->sp + 1; i++) {
+		printf("0x%08llx: %02x\n", (uintptr_t)(i - &S->memory[SIZE_ROM]), *i);	
 	}
 }
 
@@ -69,15 +75,28 @@ Spy_pushC(SpyState* S, const char* identifier, uint32_t (*function)(SpyState*), 
 		S->c_functions = container;
 	} else {
 		SpyCFunction* at = S->c_functions;
-		while (at->next) at = at->next;
+		while (at->next) {
+			at = at->next;
+		}
 		at->next = container;
 	}
 }
 
 void
-Spy_execute(SpyState* S, const uint8_t* bytecode, const uint8_t* static_memory) {
-	uint8_t opcode;
-	int64_t a; /* general purpose vars for interpretation */
+Spy_execute(SpyState* S, const uint8_t* bytecode, const uint8_t* static_memory, size_t static_memory_size) {
+	
+	/* load static memory into ROM section */
+	for (size_t i = 0; i < static_memory_size; i++) {
+		S->memory[i] = static_memory[i];
+	}
+
+	/* prepare instruction pointer, point it to code */	
+	S->ip = &bytecode[0];
+	
+	/* general purpose vars for interpretation */
+	int64_t a;
+
+	/* pointers to labels, (direct threading, significantly faster than switch/case) */
 	static const void* opcodes[] = {
 		&&noop, &&ipush, &&iadd, &&isub,
 		&&imul, &&idiv, &&mod, &&shl, 
@@ -86,7 +105,6 @@ Spy_execute(SpyState* S, const uint8_t* bytecode, const uint8_t* static_memory) 
 		&&ile, &&icmp, &&jnz, &&jz,
 		&&jmp, &&call, &&iret, &&ccall
 	};
-	S->ip = &bytecode[0];
 	/* main interpreter loop */
 	dispatch:
 	goto *opcodes[*S->ip++];
@@ -216,7 +234,7 @@ Spy_execute(SpyState* S, const uint8_t* bytecode, const uint8_t* static_memory) 
 		uint32_t nargs = Spy_readInt32(S);
 		uint32_t name_index = Spy_readInt32(S);
 		SpyCFunction* cf = S->c_functions;
-		while (cf && strcmp(cf->identifier, &static_memory[name_index])) {cf = cf->next; printf("meme\n"); }
+		while (cf && strcmp(cf->identifier, &static_memory[name_index])) cf = cf->next;
 		if (cf) {
 			/* TODO throw runtime error, incorrect number of arguments */
 			/* note -1 represents vararg */

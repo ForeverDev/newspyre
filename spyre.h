@@ -9,8 +9,9 @@
 #define SPY_DEBUG	0x01
 
 /* constants */
-#define SIZE_MEMORY 0x10000
-#define SIZE_STACK	0x01000
+#define SIZE_MEMORY 0x100000
+#define SIZE_STACK	0x010000
+#define SIZE_ROM	0x010000
 
 typedef struct SpyState SpyState;
 typedef struct SpyCFunction SpyCFunction;
@@ -39,6 +40,6 @@ uint32_t	Spy_readInt32(SpyState*);
 uint64_t	Spy_readInt64(SpyState*);
 int64_t 	Spy_popInt(SpyState*);
 void		Spy_pushC(SpyState*, const char*, uint32_t (*)(SpyState*), int);
-void		Spy_execute(SpyState*, const uint8_t*, const uint8_t*);
+void		Spy_execute(SpyState*, const uint8_t*, const uint8_t*, size_t);
 
 #endif
