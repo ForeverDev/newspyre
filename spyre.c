@@ -67,10 +67,29 @@ Spy_popInt(SpyState* S) {
 	return result;
 }
 
+inline void
+Spy_pushFloat(SpyState* S, double value) {
+	S->sp += 8;
+	*(double *)S->sp = value;
+}
+
+inline double
+Spy_readDouble(SpyState* S) {
+	S->ip += 8;
+	return *(double *)(S->ip - 8);
+}
+
+inline double
+Spy_popDouble(SpyState* S) {
+	double result = *(double *)S->sp;
+	S->sp -= 8;
+	return result;
+}
+
 void
 Spy_dump(SpyState* S) {
 	for (const uint8_t* i = &S->memory[SIZE_ROM]; i != S->sp + 1; i++) {
-		printf("0x%08p: %02x\n", i - S->memory, *i);	
+		printf("0x%08lx: %02x\n", i - S->memory, *i);	
 	}
 }
 
@@ -243,7 +262,7 @@ Spy_execute(SpyState* S, const uint8_t* bytecode, const uint8_t* static_memory, 
 		uint32_t nargs = Spy_readInt32(S);
 		uint32_t name_index = Spy_readInt32(S);
 		SpyCFunction* cf = S->c_functions;
-		while (cf && strcmp(cf->identifier, &S->memory[name_index])) cf = cf->next;
+		while (cf && strcmp(cf->identifier, (const char *)&S->memory[name_index])) cf = cf->next;
 		if (cf) {
 			/* note -1 represents vararg */
 			if (cf->nargs != nargs && cf->nargs >= 0) {

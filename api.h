@@ -5,7 +5,12 @@
 
 void SpyL_initialize(SpyState*);
 
-static uint32_t SpyL_printf(SpyState*);
-static uint32_t SpyL_multiply(SpyState*);
+/* stdio */
+static uint32_t SpyL_println(SpyState*);
+
+/* math */
+static uint32_t SpyL_max(SpyState*);
+static uint32_t SpyL_min(SpyState*);
+static uint32_t SpyL_map(SpyState*);
 
 #endif

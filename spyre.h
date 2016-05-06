@@ -40,6 +40,9 @@ void		Spy_pushInt(SpyState*, int64_t);
 uint32_t	Spy_readInt32(SpyState*);
 uint64_t	Spy_readInt64(SpyState*);
 int64_t 	Spy_popInt(SpyState*);
+void		Spy_pushFloat(SpyState*, double);
+double		Spy_readDouble(SpyState*);
+double		Spy_popDouble(SpyState*);
 void		Spy_pushC(SpyState*, const char*, uint32_t (*)(SpyState*), int);
 void		Spy_execute(SpyState*, const uint8_t*, const uint8_t*, size_t);
 
