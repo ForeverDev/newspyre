@@ -10,12 +10,13 @@ Spy_newState(uint32_t option_flags) {
 	SpyState* S = (SpyState *)malloc(sizeof(SpyState));
 	S->memory = (uint8_t *)calloc(1, SIZE_MEMORY);
 	S->ip = NULL; /* to be assigned when code is executed */
-	S->sp = &S->memory[SIZE_ROM - 1]; /* stack grows upwards */
-	S->bp = &S->memory[SIZE_ROM - 1];
+	S->sp = &S->memory[START_STACK - 1]; /* stack grows upwards */
+	S->bp = &S->memory[START_STACK - 1];
 	S->option_flags = option_flags;
 	S->runtime_flags = 0;
 	S->c_functions = NULL;
-	SpyL_initialize(S);
+	S->memory_chunks = NULL;
+	SpyL_initializeStandardLibrary(S);
 	Spy_log(S, "Spyre state created, %d bytes of memory (%d %s)\n", 
 		SIZE_MEMORY, 
 		(SIZE_MEMORY / 0x400) > 0x400 ?: (SIZE_MEMORY / 0x100000),

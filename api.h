@@ -3,13 +3,14 @@
 
 #include "spyre.h"
 
-void SpyL_initialize(SpyState*);
+void SpyL_initializeStandardLibrary(SpyState*);
 
 /* stdio */
 static uint32_t SpyL_println(SpyState*);
 
 /* memory management */
 static uint32_t SpyL_malloc(SpyState*);
+static uint32_t SpyL_free(SpyState*);
 
 /* math */
 static uint32_t SpyL_max(SpyState*);

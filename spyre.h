@@ -15,6 +15,11 @@
 #define SIZE_MEMORY 0x100000
 #define SIZE_STACK	0x010000
 #define SIZE_ROM	0x010000
+#define SIZE_PAGE	0x20
+
+#define START_ROM	0
+#define START_STACK	(SIZE_ROM)
+#define START_HEAP	(SIZE_ROM + SIZE_STACK)
 
 typedef struct SpyState SpyState;
 typedef struct SpyCFunction SpyCFunction;
@@ -29,10 +34,11 @@ struct SpyCFunction {
 };
 
 struct SpyMemoryChunk {
-	size_t			size;
+	size_t			pages;
 	uint8_t*		absolute_address;
 	uint64_t		vm_address;
 	SpyMemoryChunk*	next;
+	SpyMemoryChunk*	prev;
 };
 
 struct SpyState {
