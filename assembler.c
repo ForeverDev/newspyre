@@ -106,8 +106,8 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 						{
 							uint32_t n = (uint32_t)strtol(A.tokens->word, NULL, 10);
 							fwrite(&n, 1, sizeof(uint32_t), output.handle);
-						}
 							break;
+						}
 						case FLOAT64:
 						{
 							double n = strtod(A.tokens->word, NULL);
