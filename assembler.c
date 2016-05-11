@@ -55,6 +55,7 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	fseek(input.handle, 0, SEEK_SET);
 	input.contents = (char *)malloc(input.length + 1);
 	fread(input.contents, 1, input.length, input.handle);
+	input.contents[input.length] = 0;
 	fclose(input.handle);
 
 	AssemblerFile output;
@@ -82,11 +83,41 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 				break;
 			case IDENTIFIER:
 			{
-				uint8_t opcode;			
-				if (!(opcode = Assembler_validateInstruction(&A, A.tokens->word))) {
+				const AssemblerInstruction* ins;
+				if (!(ins = Assembler_validateInstruction(&A, A.tokens->word))) {
 					Assembler_die(&A, "unknown instruction '%s'", A.tokens->word);
 				}
-				fputc(opcode, output.handle);
+				fputc(ins->opcode, output.handle);
+				/* go through the operands */
+				for (int i = 0; i < 4; i++) {
+					if (ins->operands[i] == NO_OPERAND) break;
+					A.tokens = A.tokens->next;
+					if (!A.tokens) {
+						Assembler_die(&A, "expected operand(s)");
+					}
+					switch (ins->operands[i]) {
+						case INT64:
+						{
+							uint64_t n = strtol(A.tokens->word, NULL, 10);
+							fwrite(&n, 1, sizeof(uint64_t), output.handle);
+							break;
+						}
+						case INT32:
+						{
+							uint32_t n = (uint32_t)strtol(A.tokens->word, NULL, 10);
+							fwrite(&n, 1, sizeof(uint32_t), output.handle);
+						}
+							break;
+						case FLOAT64:
+						{
+							double n = strtod(A.tokens->word, NULL);
+							fwrite(&n, 1, sizeof(double), output.handle);
+							break;
+						}
+						case NO_OPERAND:
+							break;
+					}
+				}
 				break;
 			}
 			case NUMBER:
@@ -96,7 +127,7 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 		}
 		A.tokens = A.tokens->next;
 	}
-	
+
 	fclose(output.handle);	
 	free(A.tokens);
 	free(input.contents);
@@ -114,12 +145,12 @@ Assembler_die(Assembler* A, const char* format, ...) {
 }
 
 /* 0 = not valid, 1 = valid */
-static uint8_t
+static const AssemblerInstruction*
 Assembler_validateInstruction(Assembler* A, const char* instruction) {
 	unsigned int index = 0;
 	while (&instructions[index]) {
 		if (!strcmp_lower(instructions[index].name, instruction)) {
-			return instructions[index].opcode;	
+			return &instructions[index];	
 		};
 		index++;
 	}

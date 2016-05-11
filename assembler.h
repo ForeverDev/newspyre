@@ -35,9 +35,9 @@ struct Assembler {
 
 extern const AssemblerInstruction instructions[0xFF];
 
-void			Assembler_generateBytecodeFile(const char*);
-static void		Assembler_die(Assembler*, const char*, ...);
-static uint8_t	Assembler_validateInstruction(Assembler*, const char*);
+void								Assembler_generateBytecodeFile(const char*);
+static void							Assembler_die(Assembler*, const char*, ...);
+static const AssemblerInstruction*	Assembler_validateInstruction(Assembler*, const char*);
 
 static int		strcmp_lower(const char*, const char*);
 
