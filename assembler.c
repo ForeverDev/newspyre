@@ -73,7 +73,38 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	output.length = 0;
 	output.contents = NULL;
 
-	A.tokens = Lexer_convertToTokens(input.contents);
+	uint32_t index = 0;
+	const AssemblerInstruction* ins;
+	Token* head;
+	
+	if (!(A.tokens = head = Lexer_convertToTokens(input.contents))) goto done;
+
+	/* pass one, find all labels */
+	while (A.tokens->next) {
+		if (A.tokens->type == IDENTIFIER) {
+			if (A.tokens->next->type == PUNCT && A.tokens->next->word[0] == ':') {
+				Assembler_appendLabel(&A, A.tokens->word, index);
+				A.tokens = A.tokens->type;
+			} else if ((ins = Assembler_validateInstruction(&A, A.tokens->word))) {
+				index++; /* instruction is one byte */
+				for (int i = 0; i < 4; i++) {
+					if (ins->operands[i] == NO_OPERAND) break;
+					A.tokens = A.tokens->next;
+					index += (
+						ins->operands[i] == INT64 ? sizeof(uint64_t) :
+						ins->operands[i] == INT32 ? sizeof(uint32_t) : 
+						ins->operands[i] == FLOAT64 ? sizeof(double) : 0
+					);
+				}
+			}
+		}
+		A.tokens = A.tokens->next;
+	}
+	A.tokens = head;
+
+	/* pass two, replace labels */
+	
+	/* pass three, assemble */
 	while (A.tokens) {
 		switch (A.tokens->type) {
 			case PUNCT:
@@ -83,7 +114,6 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 				break;
 			case IDENTIFIER:
 			{
-				const AssemblerInstruction* ins;
 				if (!(ins = Assembler_validateInstruction(&A, A.tokens->word))) {
 					Assembler_die(&A, "unknown instruction '%s'", A.tokens->word);
 				}
@@ -128,6 +158,7 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 		A.tokens = A.tokens->next;
 	}
 
+	done:
 	fclose(output.handle);	
 	free(A.tokens);
 	free(input.contents);
@@ -142,6 +173,26 @@ Assembler_die(Assembler* A, const char* format, ...) {
 	va_end(list);
 	printf("\n\n");
 	exit(1);
+}
+
+static void
+Assembler_appendLabel(Assembler* A, const char* identifier, unsigned long long index) {
+	AssemblerLabel* label;
+	size_t idlen;
+	label = (AssemblerLabel *)malloc(sizeof(AssemblerLabel));
+	idlen = strlen(identifier);
+	label->identifier = (char *)malloc(idlen + 1);
+	strcpy(label->identifier, identifier);
+	label->identifier[idlen] = 0;
+	label->index = index;
+	label->next = NULL;
+	if (!A->labels) {
+		A->labels = label;
+	} else {
+		AssemblerLabel* at = A->labels;
+		while (at->next) at = at->next;
+		at->next = label;
+	}
 }
 
 /* 0 = not valid, 1 = valid */
