@@ -1,0 +1,5 @@
+IPUSH 100
+IPUSH 200
+IADD
+
+
