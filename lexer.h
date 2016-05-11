@@ -14,6 +14,7 @@ struct Token {
 	unsigned int	line;
 	TokenType		type;
 	Token*			next;
+	Token*			prev;
 };
 
 struct Lexer {

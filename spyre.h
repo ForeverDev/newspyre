@@ -42,6 +42,9 @@ struct SpyMemoryChunk {
 };
 
 struct SpyState {
+	size_t			static_memory_size;
+	uint8_t*		static_memory;
+	uint8_t*		bytecode;
 	uint8_t*		memory;
 	const uint8_t*	ip;
 	uint8_t*		sp;
@@ -64,6 +67,6 @@ void		Spy_pushFloat(SpyState*, double);
 double		Spy_readFloat(SpyState*);
 double		Spy_popFloat(SpyState*);
 void		Spy_pushC(SpyState*, const char*, uint32_t (*)(SpyState*), int);
-void		Spy_execute(SpyState*, const uint8_t*, const uint8_t*, size_t);
+void		Spy_execute(const char*, uint32_t);
 
 #endif

@@ -12,21 +12,22 @@ Lexer_convertToTokens(const char* source) {
 
 	char c;
 	while ((c = *source++)) {
-		if (c == ' ' || c == '\t') {
+		if (c == ' ' || c == '\t' || c == '\n') {
 			continue;
 		} else if (ispunct(c)) {
 			char word[2];
 			word[0] = c;
 			word[1] = 0;
 			Lexer_appendToken(&L, word, PUNCT);
-		} else if (isnumber(c)) {
+		} else if (isdigit(c)) {
 			char* word;
 			size_t len = 0;
 			const char* at = source;
-			while (isnumber(*at++) && ++len);
+			while (isdigit(*at++) && ++len);
 			at--;
-			word = (char *)malloc(len + 1);	
+			word = (char *)malloc(len + 2);	
 			memcpy(word, source - 1, len + 1);
+			word[len + 1] = 0;
 			source += len;
 			Lexer_appendToken(&L, word, NUMBER);
 		} else if (isalpha(c)) {
@@ -34,13 +35,17 @@ Lexer_convertToTokens(const char* source) {
 			size_t len = 0;
 			const char* at = source;
 			while (isalnum(*at++) && ++len);
-			word = (char *)malloc(len + 1);	
+			word = (char *)malloc(len + 2);	
 			memcpy(word, source - 1, len + 1);
+			word[len + 1] = 0;
 			source += len;
+			printf("OK %s\n", word);
 			Lexer_appendToken(&L, word, IDENTIFIER);
 		}
 	}	
-	
+
+	Lexer_printTokens(&L);
+
 	/* tokens on heap, L on stack */
 	return L.tokens;
 }
@@ -49,6 +54,7 @@ static void
 Lexer_appendToken(Lexer* L, const char* word, TokenType type) {
 	Token* token = (Token *)malloc(sizeof(Token));
 	token->next = NULL;
+	token->prev = NULL;
 	token->line = L->line;
 	token->type = type;
 	size_t length = strlen(word);
@@ -61,6 +67,7 @@ Lexer_appendToken(Lexer* L, const char* word, TokenType type) {
 		Token* at = L->tokens;
 		while (at->next) at = at->next;
 		at->next = token;
+		token->prev = at;
 	}
 }
 

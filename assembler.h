@@ -11,6 +11,13 @@ typedef struct AssemblerLabel AssemblerLabel;
 typedef struct AssemblerInstruction AssemblerInstruction;
 typedef enum AssemblerOperand AssemblerOperand;
 
+enum AssemblerOperand {
+	NO_OPERAND = 0,
+	INT64,
+	INT32,
+	FLOAT64
+};
+
 struct Assembler {
 	Token*				tokens;
 	AssemblerLabel*		labels;
@@ -32,13 +39,6 @@ struct AssemblerInstruction {
 	char*				name;
 	uint8_t				opcode;
 	AssemblerOperand	operands[4];
-};
-
-enum AssemblerOperand {
-	NO_OPERAND = 0,
-	INT64,
-	INT32,
-	FLOAT64
 };
 
 extern const AssemblerInstruction instructions[0xFF];

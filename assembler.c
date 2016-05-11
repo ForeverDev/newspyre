@@ -45,8 +45,11 @@ const AssemblerInstruction instructions[0xFF] = {
 void
 Assembler_generateBytecodeFile(const char* in_file_name) {
 	Assembler A;
+	A.labels = NULL;
+	A.tokens = NULL;
+
 	AssemblerFile input;
-	input.handle = fopen(in_file_name, "r");
+	input.handle = fopen(in_file_name, "rb");
 	if (!input.handle) {
 		Assembler_die(&A, "Couldn't open source file '%s'", in_file_name);
 	}
@@ -78,13 +81,30 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	Token* head;
 	
 	if (!(A.tokens = head = Lexer_convertToTokens(input.contents))) goto done;
-
+	
 	/* pass one, find all labels */
 	while (A.tokens->next) {
 		if (A.tokens->type == IDENTIFIER) {
 			if (A.tokens->next->type == PUNCT && A.tokens->next->word[0] == ':') {
 				Assembler_appendLabel(&A, A.tokens->word, index);
-				A.tokens = A.tokens->type;
+				if (A.tokens->prev) {
+					Token* save = A.tokens;
+					A.tokens->prev->next = A.tokens->next->next;
+					if (A.tokens->next->next) {
+						A.tokens->next->next->prev = A.tokens->prev;
+					}
+					A.tokens = A.tokens->next->next;
+					free(save->next);
+					free(save);
+					continue;
+				} else if (A.tokens->next->next) {
+					Token* save = A.tokens;
+					A.tokens->next->next->prev = NULL;
+					A.tokens = A.tokens->next->next;
+					free(save->next);
+					free(save);
+					continue;
+				}
 			} else if ((ins = Assembler_validateInstruction(&A, A.tokens->word))) {
 				index++; /* instruction is one byte */
 				for (int i = 0; i < 4; i++) {
@@ -103,6 +123,21 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	A.tokens = head;
 
 	/* pass two, replace labels */
+	while (A.tokens) {
+		if (A.tokens->type == IDENTIFIER && !Assembler_validateInstruction(&A, A.tokens->word) && A.tokens->next->word[0] != ':') {
+			for (AssemblerLabel* i = A.labels; i; i = i->next) {
+				if (!strcmp(i->identifier, A.tokens->word)) {
+					free(A.tokens->word);
+					A.tokens->word = (char *)malloc(128);
+					sprintf(A.tokens->word, "%u", i->index);
+					break;
+				}
+			}
+		}
+		A.tokens = A.tokens->next;
+	}
+	A.tokens = head;
+
 	
 	/* pass three, assemble */
 	while (A.tokens) {
@@ -176,7 +211,7 @@ Assembler_die(Assembler* A, const char* format, ...) {
 }
 
 static void
-Assembler_appendLabel(Assembler* A, const char* identifier, unsigned long long index) {
+Assembler_appendLabel(Assembler* A, const char* identifier, uint32_t index) {
 	AssemblerLabel* label;
 	size_t idlen;
 	label = (AssemblerLabel *)malloc(sizeof(AssemblerLabel));
@@ -198,12 +233,10 @@ Assembler_appendLabel(Assembler* A, const char* identifier, unsigned long long i
 /* 0 = not valid, 1 = valid */
 static const AssemblerInstruction*
 Assembler_validateInstruction(Assembler* A, const char* instruction) {
-	unsigned int index = 0;
-	while (&instructions[index]) {
-		if (!strcmp_lower(instructions[index].name, instruction)) {
-			return &instructions[index];	
+	for (int i = 0; i <= 0x22; i++) {
+		if (!strcmp_lower(instructions[i].name, instruction)) {
+			return &instructions[i];	
 		};
-		index++;
 	}
 	return 0;
 }

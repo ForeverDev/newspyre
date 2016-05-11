@@ -112,15 +112,47 @@ Spy_pushC(SpyState* S, const char* identifier, uint32_t (*function)(SpyState*), 
 }
 
 void
-Spy_execute(SpyState* S, const uint8_t* bytecode, const uint8_t* static_memory, size_t static_memory_size) {
+Spy_execute(const char* filename, uint32_t option_flags) {
+
+	SpyState S;
+
+	S.memory = (uint8_t *)calloc(1, SIZE_MEMORY);
+	S.ip = NULL; /* to be assigned when code is executed */
+	S.sp = &S.memory[START_STACK - 1]; /* stack grows upwards */
+	S.bp = &S.memory[START_STACK - 1];
+	S.option_flags = option_flags;
+	S.runtime_flags = 0;
+	S.c_functions = NULL;
+	S.memory_chunks = NULL;
+	SpyL_initializeStandardLibrary(&S);
+	Spy_log(&S, "Spyre state created, %d bytes of memory (%d %s)\n", 
+		SIZE_MEMORY, 
+		(SIZE_MEMORY / 0x400) > 0x400 ?: (SIZE_MEMORY / 0x100000),
+		(SIZE_MEMORY / 0x400) > 0x400 ? "KiB" : "MiB"
+	);
+
+	S.static_memory_size = 0;
+	S.static_memory = (char *)malloc(0);
+
+	FILE* f;
+	unsigned long long flen;
+	f = fopen(filename, "r");
+	if (!f) Spy_crash(&S, "Couldn't open input file '%s'", filename);
+	fseek(f, 0, SEEK_END);
+	flen = ftell(f);
+	fseek(f, 0, SEEK_SET);
+	S.bytecode = (uint8_t *)malloc(flen + 1);
+	fread(S.bytecode, 1, flen, f);
+	S.bytecode[flen] = 0;
+	fclose(f);
 	
 	/* load static memory into ROM section */
-	for (size_t i = 0; i < static_memory_size; i++) {
-		S->memory[i] = static_memory[i];
+	for (size_t i = 0; i < S.static_memory_size; i++) {
+		S.memory[i] = S.static_memory[i];
 	}
 
 	/* prepare instruction pointer, point it to code */	
-	S->ip = &bytecode[0];
+	S.ip = &S.bytecode[0];
 	
 	/* general purpose vars for interpretation */
 	int64_t a;
@@ -141,197 +173,200 @@ Spy_execute(SpyState* S, const uint8_t* bytecode, const uint8_t* static_memory, 
 
 	/* main interpreter loop */
 	dispatch:
-	goto *opcodes[*S->ip++];
+	goto *opcodes[*S.ip++];
 
 	noop:
 	goto done;
 	
 	ipush:
-	Spy_pushInt(S, Spy_readInt64(S));
+	Spy_pushInt(&S, Spy_readInt64(&S));
 	goto dispatch;
 
 	iadd:
-	Spy_pushInt(S, Spy_popInt(S) + Spy_popInt(S));
+	Spy_pushInt(&S, Spy_popInt(&S) + Spy_popInt(&S));
 	goto dispatch;
 
 	isub:
-	a = Spy_popInt(S);
-	Spy_pushInt(S, Spy_popInt(S) - a);
+	a = Spy_popInt(&S);
+	Spy_pushInt(&S, Spy_popInt(&S) - a);
 	goto dispatch;
 
 	imul:
-	Spy_pushInt(S, Spy_popInt(S) * Spy_popInt(S));
+	Spy_pushInt(&S, Spy_popInt(&S) * Spy_popInt(&S));
 	goto dispatch;
 
 	idiv:
-	a = Spy_popInt(S);
-	Spy_pushInt(S, Spy_popInt(S) / a);
+	a = Spy_popInt(&S);
+	Spy_pushInt(&S, Spy_popInt(&S) / a);
 	goto dispatch;
 
 	mod:
-	a = Spy_popInt(S);
-	Spy_pushInt(S, Spy_popInt(S) % a);
+	a = Spy_popInt(&S);
+	Spy_pushInt(&S, Spy_popInt(&S) % a);
 	goto dispatch;
 
 	shl:
-	a = Spy_popInt(S);
-	Spy_pushInt(S, Spy_popInt(S) << a);
+	a = Spy_popInt(&S);
+	Spy_pushInt(&S, Spy_popInt(&S) << a);
 	goto dispatch;
 	
 	shr:
-	a = Spy_popInt(S);
-	Spy_pushInt(S, Spy_popInt(S) >> a);
+	a = Spy_popInt(&S);
+	Spy_pushInt(&S, Spy_popInt(&S) >> a);
 	goto dispatch;
 
 	and:
-	a = Spy_popInt(S);
-	Spy_pushInt(S, Spy_popInt(S) & a);
+	a = Spy_popInt(&S);
+	Spy_pushInt(&S, Spy_popInt(&S) & a);
 	goto dispatch;
 
 	or:
-	a = Spy_popInt(S);
-	Spy_pushInt(S, Spy_popInt(S) | a);
+	a = Spy_popInt(&S);
+	Spy_pushInt(&S, Spy_popInt(&S) | a);
 	goto dispatch;
 
 	xor:
-	a = Spy_popInt(S);
-	Spy_pushInt(S, Spy_popInt(S) ^ a);
+	a = Spy_popInt(&S);
+	Spy_pushInt(&S, Spy_popInt(&S) ^ a);
 	goto dispatch;
 
 	not:
-	Spy_pushInt(S, ~Spy_popInt(S));
+	Spy_pushInt(&S, ~Spy_popInt(&S));
 	goto dispatch;
 
 	neg:
-	Spy_pushInt(S, -Spy_popInt(S));
+	Spy_pushInt(&S, -Spy_popInt(&S));
 	goto dispatch;
 
 	igt:
-	a = Spy_popInt(S);
-	Spy_pushInt(S, Spy_popInt(S) > a);
+	a = Spy_popInt(&S);
+	Spy_pushInt(&S, Spy_popInt(&S) > a);
 	goto dispatch;
 
 	ige:
-	a = Spy_popInt(S);
-	Spy_pushInt(S, Spy_popInt(S) >= a);
+	a = Spy_popInt(&S);
+	Spy_pushInt(&S, Spy_popInt(&S) >= a);
 	goto dispatch;
 
 	ilt:
-	a = Spy_popInt(S);
-	Spy_pushInt(S, Spy_popInt(S) < a);
+	a = Spy_popInt(&S);
+	Spy_pushInt(&S, Spy_popInt(&S) < a);
 	goto dispatch;
 
 	ile:
-	a = Spy_popInt(S);
-	Spy_pushInt(S, Spy_popInt(S) <= a);
+	a = Spy_popInt(&S);
+	Spy_pushInt(&S, Spy_popInt(&S) <= a);
 	goto dispatch;
 
 	icmp:
-	Spy_pushInt(S, Spy_popInt(S) == Spy_popInt(S));
+	Spy_pushInt(&S, Spy_popInt(&S) == Spy_popInt(&S));
 	goto dispatch;
 
 	jnz:
-	if (Spy_popInt(S)) {
-		S->ip = (uint8_t *)(bytecode + Spy_readInt32(S));
+	if (Spy_popInt(&S)) {
+		S.ip = (uint8_t *)(S.bytecode + Spy_readInt32(&S));
 	}
 	goto dispatch;
 
 	jz:
-	if (!Spy_popInt(S)) {
-		S->ip = (uint8_t *)(bytecode + Spy_readInt32(S));
+	if (!Spy_popInt(&S)) {
+		S.ip = (uint8_t *)(S.bytecode + Spy_readInt32(&S));
 	}
 	goto dispatch;
 
 	jmp:
-	S->ip = (uint8_t *)(bytecode + Spy_readInt32(S));
+	S.ip = (uint8_t *)(S.bytecode + Spy_readInt32(&S));
 	goto dispatch;
 
 	call:
-	Spy_pushInt(S, Spy_readInt32(S)); /* push number of arguments */
-	Spy_pushInt(S, (uintptr_t)S->bp); /* push base pointer */
-	Spy_pushInt(S, (uintptr_t)S->ip); /* push return address */
-	S->bp = S->sp;
-	S->ip = (uint8_t *)(bytecode + Spy_readInt32(S));
+	Spy_pushInt(&S, Spy_readInt32(&S)); /* push number of arguments */
+	Spy_pushInt(&S, (uintptr_t)S.bp); /* push base pointer */
+	Spy_pushInt(&S, (uintptr_t)S.ip); /* push return address */
+	S.bp = S.sp;
+	S.ip = (uint8_t *)(S.bytecode + Spy_readInt32(&S));
 	goto dispatch;
 
 	iret:
-	a = Spy_popInt(S); /* return value */
-	S->sp = S->bp;
-	S->ip = (uint8_t *)(intptr_t)Spy_popInt(S);	
-	S->bp = (uint8_t *)(intptr_t)Spy_popInt(S);
-	S->sp -= Spy_popInt(S);
-	Spy_pushInt(S, a);
+	a = Spy_popInt(&S); /* return value */
+	S.sp = S.bp;
+	S.ip = (uint8_t *)(intptr_t)Spy_popInt(&S);	
+	S.bp = (uint8_t *)(intptr_t)Spy_popInt(&S);
+	S.sp -= Spy_popInt(&S);
+	Spy_pushInt(&S, a);
 	goto dispatch;	
 
 	ccall:
 	{
-		uint32_t nargs = Spy_readInt32(S);
-		uint32_t name_index = Spy_readInt32(S);
-		SpyCFunction* cf = S->c_functions;
-		while (cf && strcmp(cf->identifier, (const char *)&S->memory[name_index])) cf = cf->next;
+		uint32_t nargs = Spy_readInt32(&S);
+		uint32_t name_index = Spy_readInt32(&S);
+		SpyCFunction* cf = S.c_functions;
+		while (cf && strcmp(cf->identifier, (const char *)&S.memory[name_index])) cf = cf->next;
 		if (cf) {
 			/* note -1 represents vararg */
 			if (cf->nargs != nargs && cf->nargs >= 0) {
-				Spy_crash(S, "Attempt to call C function '%s' with the incorret number of arguments (wanted %d, got %d)\n", 
-					&S->memory[name_index],
+				Spy_crash(&S, "Attempt to call C function '%s' with the incorret number of arguments (wanted %d, got %d)\n", 
+					&S.memory[name_index],
 					cf->nargs,
 					nargs
 				);
 			} 
-			cf->function(S);
+			cf->function(&S);
 		} else {
-			Spy_crash(S, "Attempt to call undefined C function '%s'\n", &S->memory[name_index]);
+			Spy_crash(&S, "Attempt to call undefined C function '%s'\n", &S.memory[name_index]);
 		}
 	}
 	goto dispatch;
 		
 	fpush:
-	Spy_pushFloat(S, Spy_readFloat(S));
+	Spy_pushFloat(&S, Spy_readFloat(&S));
 	goto dispatch;
 
 	fadd:
-	Spy_pushFloat(S, Spy_popFloat(S) + Spy_popFloat(S));
+	Spy_pushFloat(&S, Spy_popFloat(&S) + Spy_popFloat(&S));
 	goto dispatch;
 
 	fsub:
-	b = Spy_popFloat(S);
-	Spy_pushFloat(S, Spy_popFloat(S) - a);
+	b = Spy_popFloat(&S);
+	Spy_pushFloat(&S, Spy_popFloat(&S) - a);
 	goto dispatch;
 
 	fmul:
-	Spy_pushFloat(S, Spy_popFloat(S) * Spy_popFloat(S));
+	Spy_pushFloat(&S, Spy_popFloat(&S) * Spy_popFloat(&S));
 	goto dispatch;
 
 	fdiv:
-	b = Spy_popFloat(S);
-	Spy_pushFloat(S, Spy_popFloat(S) / a);
+	b = Spy_popFloat(&S);
+	Spy_pushFloat(&S, Spy_popFloat(&S) / a);
 	goto dispatch;
 
 	fgt:
-	b = Spy_popFloat(S);
-	Spy_pushFloat(S, Spy_popFloat(S) > a);
+	b = Spy_popFloat(&S);
+	Spy_pushFloat(&S, Spy_popFloat(&S) > a);
 	goto dispatch;
 
 	fge:
-	b = Spy_popFloat(S);
-	Spy_pushFloat(S, Spy_popFloat(S) >= a);
+	b = Spy_popFloat(&S);
+	Spy_pushFloat(&S, Spy_popFloat(&S) >= a);
 	goto dispatch;
 
 	flt:
-	b = Spy_popFloat(S);
-	Spy_pushFloat(S, Spy_popFloat(S) < a);
+	b = Spy_popFloat(&S);
+	Spy_pushFloat(&S, Spy_popFloat(&S) < a);
 	goto dispatch;
 
 	fle:
-	b = Spy_popFloat(S);
-	Spy_pushFloat(S, Spy_popFloat(S) <= a);
+	b = Spy_popFloat(&S);
+	Spy_pushFloat(&S, Spy_popFloat(&S) <= a);
 	goto dispatch;
 
 	fcmp:
-	Spy_pushInt(S, Spy_popFloat(S) == Spy_popFloat(S));
+	Spy_pushInt(&S, Spy_popFloat(&S) == Spy_popFloat(&S));
 	goto dispatch;
 
 	done:
+
+	Spy_dump(&S);
+
 	return;
 
 }
