@@ -124,6 +124,7 @@ Spy_execute(SpyState* S, const uint8_t* bytecode, const uint8_t* static_memory, 
 	
 	/* general purpose vars for interpretation */
 	int64_t a;
+	double b;
 
 	/* pointers to labels, (direct threading, significantly faster than switch/case) */
 	static const void* opcodes[] = {
@@ -293,7 +294,7 @@ Spy_execute(SpyState* S, const uint8_t* bytecode, const uint8_t* static_memory, 
 	goto dispatch;
 
 	fsub:
-	a = Spy_popFloat(S);
+	b = Spy_popFloat(S);
 	Spy_pushFloat(S, Spy_popFloat(S) - a);
 	goto dispatch;
 
@@ -302,27 +303,27 @@ Spy_execute(SpyState* S, const uint8_t* bytecode, const uint8_t* static_memory, 
 	goto dispatch;
 
 	fdiv:
-	a = Spy_popFloat(S);
+	b = Spy_popFloat(S);
 	Spy_pushFloat(S, Spy_popFloat(S) / a);
 	goto dispatch;
 
 	fgt:
-	a = Spy_popFloat(S);
+	b = Spy_popFloat(S);
 	Spy_pushFloat(S, Spy_popFloat(S) > a);
 	goto dispatch;
 
 	fge:
-	a = Spy_popFloat(S);
+	b = Spy_popFloat(S);
 	Spy_pushFloat(S, Spy_popFloat(S) >= a);
 	goto dispatch;
 
 	flt:
-	a = Spy_popFloat(S);
+	b = Spy_popFloat(S);
 	Spy_pushFloat(S, Spy_popFloat(S) < a);
 	goto dispatch;
 
 	fle:
-	a = Spy_popFloat(S);
+	b = Spy_popFloat(S);
 	Spy_pushFloat(S, Spy_popFloat(S) <= a);
 	goto dispatch;
 
