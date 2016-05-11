@@ -41,8 +41,6 @@ Lexer_convertToTokens(const char* source) {
 		}
 	}	
 	
-	Lexer_printTokens(&L);
-	
 	/* tokens on heap, L on stack */
 	return L.tokens;
 }
