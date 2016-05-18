@@ -132,7 +132,7 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 	);
 
 	S.static_memory_size = 0;
-	S.static_memory = (char *)malloc(0);
+	S.static_memory = (uint8_t *)malloc(0);
 
 	FILE* f;
 	unsigned long long flen;

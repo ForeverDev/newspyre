@@ -138,6 +138,7 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	}
 	A.tokens = head;
 
+
 	
 	/* pass three, assemble */
 	while (A.tokens) {
