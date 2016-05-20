@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include "lexer.h"
 
+#define TMPFILE_NAME ".SPYRE_TEMP_FILE"
+
 typedef struct Assembler Assembler;
 typedef struct AssemblerFile AssemblerFile;
 typedef struct AssemblerLabel AssemblerLabel;

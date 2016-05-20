@@ -136,6 +136,7 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 
 	FILE* f;
 	unsigned long long flen;
+	uint32_t code_start;
 	f = fopen(filename, "r");
 	if (!f) Spy_crash(&S, "Couldn't open input file '%s'", filename);
 	fseek(f, 0, SEEK_END);
@@ -152,7 +153,7 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 	}
 
 	/* prepare instruction pointer, point it to code */	
-	S.ip = &S.bytecode[0];
+	S.ip = &S.bytecode[*(uint32_t *)&S.bytecode[8]];
 	
 	/* general purpose vars for interpretation */
 	int64_t a;

@@ -76,7 +76,16 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	output.length = 0;
 	output.contents = NULL;
 
+	AssemblerFile tmp_output;
+	if (!output.handle) {
+		Assembler_die(&A, "Couldn't open tmp file for writing");
+	}
+	tmp_output.handle = fopen(TMPFILE_NAME, "wb");
+	tmp_output.length = 0;
+	tmp_output.contents = NULL;
+
 	uint32_t index = 0;
+	int rom_size = 0;
 	const AssemblerInstruction* ins;
 	Token* head;
 	
@@ -116,6 +125,7 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 						ins->operands[i] == FLOAT64 ? sizeof(double) : 0
 					);
 				}
+				if (!A.tokens->next) break;
 			}
 		}
 		A.tokens = A.tokens->next;
@@ -124,12 +134,11 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 
 	/* pass two, replace labels */
 	while (A.tokens) {
-		if (A.tokens->type == IDENTIFIER && !Assembler_validateInstruction(&A, A.tokens->word) && A.tokens->next->word[0] != ':') {
-			for (AssemblerLabel* i = A.labels; i; i = i->next) {
+		if (A.tokens->type == IDENTIFIER && !Assembler_validateInstruction(&A, A.tokens->word) && A.tokens->next && A.tokens->next->word[0] != ':') {
+			for (const AssemblerLabel* i = A.labels; i; i = i->next) {
 				if (!strcmp(i->identifier, A.tokens->word)) {
 					free(A.tokens->word);
-					A.tokens->word = (char *)malloc(128);
-					sprintf(A.tokens->word, "%u", i->index);
+					sprintf((A.tokens->word = (char *)malloc(128)), "%u", i->index);
 					break;
 				}
 			}
@@ -137,8 +146,6 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 		A.tokens = A.tokens->next;
 	}
 	A.tokens = head;
-
-
 	
 	/* pass three, assemble */
 	while (A.tokens) {
@@ -153,7 +160,7 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 				if (!(ins = Assembler_validateInstruction(&A, A.tokens->word))) {
 					Assembler_die(&A, "unknown instruction '%s'", A.tokens->word);
 				}
-				fputc(ins->opcode, output.handle);
+				fputc(ins->opcode, tmp_output.handle);
 				/* go through the operands */
 				for (int i = 0; i < 4; i++) {
 					if (ins->operands[i] == NO_OPERAND) break;
@@ -165,19 +172,19 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 						case INT64:
 						{
 							uint64_t n = strtol(A.tokens->word, NULL, 10);
-							fwrite(&n, 1, sizeof(uint64_t), output.handle);
+							fwrite(&n, 1, sizeof(uint64_t), tmp_output.handle);
 							break;
 						}
 						case INT32:
 						{
 							uint32_t n = (uint32_t)strtol(A.tokens->word, NULL, 10);
-							fwrite(&n, 1, sizeof(uint32_t), output.handle);
+							fwrite(&n, 1, sizeof(uint32_t), tmp_output.handle);
 							break;
 						}
 						case FLOAT64:
 						{
 							double n = strtod(A.tokens->word, NULL);
-							fwrite(&n, 1, sizeof(double), output.handle);
+							fwrite(&n, 1, sizeof(double), tmp_output.handle);
 							break;
 						}
 						case NO_OPERAND:
@@ -193,8 +200,34 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 		}
 		A.tokens = A.tokens->next;
 	}
+	
+	/* close temporary write file and open for reading */
+	AssemblerFile tmp_input;	
+	fclose(tmp_output.handle);
+	tmp_input.handle = fopen(TMPFILE_NAME, "rb");
+	/* N/A */
+	tmp_input.length = 0;
+	tmp_input.contents = NULL;
+
+	/* write the headers for the output file */
+	const uint32_t magic = 0xDEC0ADDE;
+	const uint32_t rom = sizeof(uint32_t) * 2;
+	const uint32_t code = (sizeof(uint32_t) * 3) + rom_size;
+	fwrite(&magic, sizeof(uint32_t), 1, output.handle);
+	fwrite(&rom, sizeof(uint32_t), 1, output.handle);
+	fwrite(&code, sizeof(uint32_t), 1, output.handle);
+
+	/* copy temporary file into output file */
+	char c;
+	while ((c = fgetc(tmp_input.handle)) != EOF) {
+		printf("%d\n", c);
+		fputc(c, output.handle);
+	}
 
 	done:
+	if (tmp_output.handle) {
+		fclose(tmp_output.handle);
+	}
 	fclose(output.handle);	
 	free(A.tokens);
 	free(input.contents);
