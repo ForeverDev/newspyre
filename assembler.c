@@ -210,7 +210,7 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	tmp_input.contents = NULL;
 
 	/* write the headers for the output file */
-	const uint32_t magic = 0xDEC0ADDE;
+	const uint32_t magic = 0xD3ADC0DE;
 	const uint32_t rom = sizeof(uint32_t) * 2;
 	const uint32_t code = (sizeof(uint32_t) * 3) + rom_size;
 	fwrite(&magic, sizeof(uint32_t), 1, output.handle);
