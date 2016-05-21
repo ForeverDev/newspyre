@@ -41,6 +41,7 @@ Spy_crash(SpyState* S, const char* format, ...) {
 	va_start(list, format);
 	vprintf(format, list);
 	va_end(list);
+	putc('\n', stdout);
 	exit(1);
 }
 
@@ -169,7 +170,8 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 		&&jmp, &&call, &&iret, &&ccall,
 		&&fpush, &&fadd, &&fsub, &&fmul,
 		&&fdiv, &&fgt, &&fge, &&flt, 
-		&&fle, &&fcmp
+		&&fle, &&fcmp, &&fret, &&ilload,
+		&&illsave, &&iarg, &&iload, &&isave
 	};
 
 	/* main interpreter loop */
@@ -265,18 +267,18 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 
 	jnz:
 	if (Spy_popInt(&S)) {
-		S.ip = (uint8_t *)(S.bytecode + Spy_readInt32(&S));
+		S.ip = (uint8_t *)&S.bytecode[Spy_readInt32(&S)];
 	}
 	goto dispatch;
 
 	jz:
 	if (!Spy_popInt(&S)) {
-		S.ip = (uint8_t *)(S.bytecode + Spy_readInt32(&S));
+		S.ip = (uint8_t *)&S.bytecode[Spy_readInt32(&S)];
 	}
 	goto dispatch;
 
 	jmp:
-	S.ip = (uint8_t *)(S.bytecode + Spy_readInt32(&S));
+	S.ip = (uint8_t *)&S.bytecode[Spy_readInt32(&S)];
 	goto dispatch;
 
 	call:
@@ -284,7 +286,7 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 	Spy_pushInt(&S, (uintptr_t)S.bp); /* push base pointer */
 	Spy_pushInt(&S, (uintptr_t)S.ip); /* push return address */
 	S.bp = S.sp;
-	S.ip = (uint8_t *)(S.bytecode + Spy_readInt32(&S));
+	S.ip = (uint8_t *)&S.bytecode[8 + Spy_readInt32(&S)];
 	goto dispatch;
 
 	iret:
@@ -328,7 +330,7 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 
 	fsub:
 	b = Spy_popFloat(&S);
-	Spy_pushFloat(&S, Spy_popFloat(&S) - a);
+	Spy_pushFloat(&S, Spy_popFloat(&S) - b);
 	goto dispatch;
 
 	fmul:
@@ -337,35 +339,59 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 
 	fdiv:
 	b = Spy_popFloat(&S);
-	Spy_pushFloat(&S, Spy_popFloat(&S) / a);
+	Spy_pushFloat(&S, Spy_popFloat(&S) / b);
 	goto dispatch;
 
 	fgt:
 	b = Spy_popFloat(&S);
-	Spy_pushFloat(&S, Spy_popFloat(&S) > a);
+	Spy_pushFloat(&S, Spy_popFloat(&S) > b);
 	goto dispatch;
 
 	fge:
 	b = Spy_popFloat(&S);
-	Spy_pushFloat(&S, Spy_popFloat(&S) >= a);
+	Spy_pushFloat(&S, Spy_popFloat(&S) >= b);
 	goto dispatch;
 
 	flt:
 	b = Spy_popFloat(&S);
-	Spy_pushFloat(&S, Spy_popFloat(&S) < a);
+	Spy_pushFloat(&S, Spy_popFloat(&S) < b);
 	goto dispatch;
 
 	fle:
 	b = Spy_popFloat(&S);
-	Spy_pushFloat(&S, Spy_popFloat(&S) <= a);
+	Spy_pushFloat(&S, Spy_popFloat(&S) <= b);
 	goto dispatch;
 
 	fcmp:
 	Spy_pushInt(&S, Spy_popFloat(&S) == Spy_popFloat(&S));
 	goto dispatch;
 
-	done:
+	fret:
+	b = Spy_popFloat(&S); /* return value */
+	S.sp = S.bp;
+	S.ip = (uint8_t *)Spy_popInt(&S);	
+	S.bp = (uint8_t *)Spy_popInt(&S);
+	S.sp -= Spy_popInt(&S);
+	Spy_pushFloat(&S, a);
+	goto dispatch;	
 
+	ilload:
+	Spy_pushFloat(&S, *(double *)(S.bp + Spy_readInt32(&S)));
+	goto dispatch;
+
+	illsave:
+	goto dispatch;
+
+	iarg:
+	goto dispatch;
+
+	iload:
+	goto dispatch;
+
+	isave:
+	goto dispatch;
+
+	done:
 	Spy_dump(&S);
 
 	return;

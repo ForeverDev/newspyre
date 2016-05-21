@@ -39,7 +39,13 @@ const AssemblerInstruction instructions[0xFF] = {
 	{"FGE",		0x1F, {NO_OPERAND}},
 	{"FLT",		0x20, {NO_OPERAND}},
 	{"FLE",		0x21, {NO_OPERAND}},
-	{"FCMP",	0x22, {NO_OPERAND}}
+	{"FCMP",	0x22, {NO_OPERAND}},
+	{"FRET",	0x23, {NO_OPERAND}},
+	{"ILLOAD",	0x24, {INT32}},
+	{"ILSAVE",	0x25, {INT32}},
+	{"IARG",	0x26, {INT32}},
+	{"ILOAD",	0x27, {NO_OPERAND}},
+	{"ISAVE",	0x28, {NO_OPERAND}}
 };
 
 void
@@ -94,8 +100,10 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	/* pass one, find all labels */
 	while (A.tokens->next) {
 		if (A.tokens->type == IDENTIFIER) {
-			if (A.tokens->next->type == PUNCT && A.tokens->next->word[0] == ':') {
-				Assembler_appendLabel(&A, A.tokens->word, index);
+			if (A.tokens->next->type == PUNCT && (A.tokens->next->word[0] == ':' || A.tokens->next->word[0] == ',')) {
+				if (A.tokens->next->word[0] == ':') {
+					Assembler_appendLabel(&A, A.tokens->word, index);
+				}
 				if (A.tokens->prev) {
 					Token* save = A.tokens;
 					A.tokens->prev->next = A.tokens->next->next;
@@ -171,13 +179,13 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 					switch (ins->operands[i]) {
 						case INT64:
 						{
-							uint64_t n = strtol(A.tokens->word, NULL, 10);
+							uint64_t n = A.tokens->word[1] == 'x' ? strtol(&A.tokens->word[2], NULL, 16) : strtol(A.tokens->word, NULL, 10);
 							fwrite(&n, 1, sizeof(uint64_t), tmp_output.handle);
 							break;
 						}
 						case INT32:
 						{
-							uint32_t n = (uint32_t)strtol(A.tokens->word, NULL, 10);
+							uint64_t n = A.tokens->word[1] == 'x' ? strtol(&A.tokens->word[2], NULL, 16) : strtol(A.tokens->word, NULL, 10);
 							fwrite(&n, 1, sizeof(uint32_t), tmp_output.handle);
 							break;
 						}
@@ -220,7 +228,6 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	/* copy temporary file into output file */
 	char c;
 	while ((c = fgetc(tmp_input.handle)) != EOF) {
-		printf("%d\n", c);
 		fputc(c, output.handle);
 	}
 
@@ -236,7 +243,7 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 static void
 Assembler_die(Assembler* A, const char* format, ...) {
 	va_list list;
-	printf("\n*** Spyre assembler error ***\n");
+	printf("\n*** Spyre assembler error (line %d) ***\n", A->tokens->line);
 	va_start(list, format);
 	vprintf(format, list);
 	va_end(list);

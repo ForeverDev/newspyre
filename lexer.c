@@ -8,11 +8,13 @@ Token*
 Lexer_convertToTokens(const char* source) {
 	Lexer L;
 	L.tokens = NULL;
-	L.line = 0;
+	L.line = 1;
 
 	char c;
 	while ((c = *source++)) {
-		if (c == ' ' || c == '\t' || c == '\n') {
+		if (c == '\n') {
+			L.line++;
+		} else if (c == ' ' || c == '\t') {
 			continue;
 		} else if (ispunct(c)) {
 			char word[2];
@@ -20,10 +22,11 @@ Lexer_convertToTokens(const char* source) {
 			word[1] = 0;
 			Lexer_appendToken(&L, word, PUNCT);
 		} else if (isdigit(c)) {
+			//if (*source == 'x' && c == '0') source += 2;
 			char* word;
 			size_t len = 0;
 			const char* at = source;
-			while (isdigit(*at++) && ++len);
+			while (isalnum(*at++) && ++len);
 			at--;
 			word = (char *)malloc(len + 2);	
 			memcpy(word, source - 1, len + 1);
@@ -39,12 +42,9 @@ Lexer_convertToTokens(const char* source) {
 			memcpy(word, source - 1, len + 1);
 			word[len + 1] = 0;
 			source += len;
-			printf("OK %s\n", word);
 			Lexer_appendToken(&L, word, IDENTIFIER);
 		}
 	}	
-
-	Lexer_printTokens(&L);
 
 	/* tokens on heap, L on stack */
 	return L.tokens;
