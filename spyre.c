@@ -71,6 +71,12 @@ Spy_popInt(SpyState* S) {
 }
 
 inline void
+Spy_saveInt(SpyState* S, uint8_t* addr, int64_t value) {
+	int64_t* absolute_addr = (int64_t *)addr;
+	*absolute_addr = value;
+}
+
+inline void
 Spy_pushFloat(SpyState* S, double value) {
 	S->sp += 8;
 	*(double *)S->sp = value;
@@ -286,7 +292,7 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 	Spy_pushInt(&S, (uintptr_t)S.bp); /* push base pointer */
 	Spy_pushInt(&S, (uintptr_t)S.ip); /* push return address */
 	S.bp = S.sp;
-	S.ip = (uint8_t *)&S.bytecode[8 + Spy_readInt32(&S)];
+	S.ip = (uint8_t *)&S.bytecode[Spy_readInt32(&S) + 8];
 	goto dispatch;
 
 	iret:
@@ -369,26 +375,31 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 	fret:
 	b = Spy_popFloat(&S); /* return value */
 	S.sp = S.bp;
-	S.ip = (uint8_t *)Spy_popInt(&S);	
-	S.bp = (uint8_t *)Spy_popInt(&S);
+	S.ip = (uint8_t *)(uintptr_t)Spy_popInt(&S);	
+	S.bp = (uint8_t *)(uintptr_t)Spy_popInt(&S);
 	S.sp -= Spy_popInt(&S);
 	Spy_pushFloat(&S, a);
 	goto dispatch;	
 
 	ilload:
-	Spy_pushFloat(&S, *(double *)(S.bp + Spy_readInt32(&S)));
+	Spy_pushInt(&S, *(int64_t *)&S.bp[Spy_readInt32(&S)]);
 	goto dispatch;
 
 	illsave:
+	Spy_saveInt(&S, &S.bp[Spy_readInt32(&S)], Spy_popInt(&S));
 	goto dispatch;
 
 	iarg:
+	Spy_pushInt(&S, *(int64_t *)&S.bp[3*sizeof(uint64_t) + Spy_readInt32(&S)]);
 	goto dispatch;
 
 	iload:
+	Spy_pushInt(&S, *(int64_t *)&S.memory[Spy_popInt(&S)]);
 	goto dispatch;
 
 	isave:
+	a = Spy_popInt(&S); /* pop value */
+	Spy_saveInt(&S, &S.memory[Spy_popInt(&S)], a);
 	goto dispatch;
 
 	done:
