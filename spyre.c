@@ -138,13 +138,10 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 		(SIZE_MEMORY / 0x400) > 0x400 ? "KiB" : "MiB"
 	);
 
-	S.static_memory_size = 0;
-	S.static_memory = (uint8_t *)malloc(0);
-
 	FILE* f;
 	unsigned long long flen;
 	uint32_t code_start;
-	f = fopen(filename, "r");
+	f = fopen(filename, "rb");
 	if (!f) Spy_crash(&S, "Couldn't open input file '%s'", filename);
 	fseek(f, 0, SEEK_END);
 	flen = ftell(f);
@@ -153,14 +150,14 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 	fread(S.bytecode, 1, flen, f);
 	S.bytecode[flen] = 0;
 	fclose(f);
-	
-	/* load static memory into ROM section */
-	for (size_t i = 0; i < S.static_memory_size; i++) {
-		S.memory[i] = S.static_memory[i];
+
+	for (int i = 12; i < *(uint32_t *)&S.bytecode[8]; i++) {
+		S.memory[i - 12] = S.bytecode[i];
 	}
 
 	/* prepare instruction pointer, point it to code */	
-	S.ip = &S.bytecode[*(uint32_t *)&S.bytecode[8]];
+	S.bytecode = &S.bytecode[*(uint32_t *)&S.bytecode[8]];
+	S.ip = S.bytecode;
 	
 	/* general purpose vars for interpretation */
 	int64_t a;
@@ -288,11 +285,12 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 	goto dispatch;
 
 	call:
+	a = Spy_readInt32(&S);
 	Spy_pushInt(&S, Spy_readInt32(&S)); /* push number of arguments */
 	Spy_pushInt(&S, (uintptr_t)S.bp); /* push base pointer */
 	Spy_pushInt(&S, (uintptr_t)S.ip); /* push return address */
 	S.bp = S.sp;
-	S.ip = (uint8_t *)&S.bytecode[Spy_readInt32(&S) + 8];
+	S.ip = (uint8_t *)&S.bytecode[a];
 	goto dispatch;
 
 	iret:
@@ -306,8 +304,8 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 
 	ccall:
 	{
-		uint32_t nargs = Spy_readInt32(&S);
 		uint32_t name_index = Spy_readInt32(&S);
+		uint32_t nargs = Spy_readInt32(&S);
 		SpyCFunction* cf = S.c_functions;
 		while (cf && strcmp(cf->identifier, (const char *)&S.memory[name_index])) cf = cf->next;
 		if (cf) {

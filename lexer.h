@@ -6,7 +6,7 @@ typedef struct Lexer Lexer;
 typedef enum TokenType TokenType;
 
 enum TokenType {
-	NOTOK, PUNCT, NUMBER, IDENTIFIER	
+	NOTOK, PUNCT, NUMBER, IDENTIFIER, LITERAL
 };
 
 struct Token {

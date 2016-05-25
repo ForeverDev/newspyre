@@ -1,5 +1,14 @@
-CALL THING, 0 
-CALL THING, 0x16
+LET thing "HELLO %d\n"
+LET println "println"
 
-THING:
-IRET
+JMP MAIN
+
+FUNC:
+	IPUSH 42
+	IPUSH thing
+	CCALL println 2
+	IPUSH 6
+	IRET
+
+MAIN:
+	CALL FUNC 0

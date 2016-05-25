@@ -10,6 +10,7 @@
 typedef struct Assembler Assembler;
 typedef struct AssemblerFile AssemblerFile;
 typedef struct AssemblerLabel AssemblerLabel;
+typedef struct AssemblerConstant AssemblerConstant;
 typedef struct AssemblerInstruction AssemblerInstruction;
 typedef enum AssemblerOperand AssemblerOperand;
 
@@ -23,6 +24,7 @@ enum AssemblerOperand {
 struct Assembler {
 	Token*				tokens;
 	AssemblerLabel*		labels;
+	AssemblerConstant*	constants;
 };
 
 struct AssemblerFile {
@@ -37,6 +39,12 @@ struct AssemblerLabel {
 	AssemblerLabel*		next;
 };
 
+struct AssemblerConstant {
+	char*				identifier;
+	uint32_t			index;
+	AssemblerConstant*	next;
+};
+
 struct AssemblerInstruction {
 	char*				name;
 	uint8_t				opcode;
@@ -48,6 +56,7 @@ extern const AssemblerInstruction instructions[0xFF];
 void Assembler_generateBytecodeFile(const char*);
 static void	Assembler_die(Assembler*, const char*, ...);
 static void Assembler_appendLabel(Assembler*, const char*, uint32_t);
+static void Assembler_appendConstant(Assembler*, const char*, uint32_t);
 static const AssemblerInstruction* Assembler_validateInstruction(Assembler*, const char*);
 static int strcmp_lower(const char*, const char*);
 

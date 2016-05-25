@@ -53,6 +53,7 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	Assembler A;
 	A.labels = NULL;
 	A.tokens = NULL;
+	A.constants = NULL;
 
 	AssemblerFile input;
 	input.handle = fopen(in_file_name, "rb");
@@ -100,7 +101,7 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	/* pass one, find all labels */
 	while (A.tokens->next) {
 		if (A.tokens->type == IDENTIFIER) {
-			if (A.tokens->next->type == PUNCT && (A.tokens->next->word[0] == ':' || A.tokens->next->word[0] == ',')) {
+			if ((A.tokens->next->type == PUNCT && (A.tokens->next->word[0] == ':' || A.tokens->next->word[0] == ','))) {
 				if (A.tokens->next->word[0] == ':') {
 					Assembler_appendLabel(&A, A.tokens->word, index);
 				}
@@ -122,6 +123,14 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 					free(save);
 					continue;
 				}
+			} else if (!strcmp_lower(A.tokens->word, "let")) {
+				size_t len;
+				A.tokens = A.tokens->next;
+				Assembler_appendConstant(&A, A.tokens->word, rom_size);
+				A.tokens = A.tokens->next;
+				len = strlen(A.tokens->word);
+				fwrite(A.tokens->word, len + 1, 1, tmp_output.handle);
+				rom_size += len + 1;
 			} else if ((ins = Assembler_validateInstruction(&A, A.tokens->word))) {
 				index++; /* instruction is one byte */
 				for (int i = 0; i < 4; i++) {
@@ -140,22 +149,37 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	}
 	A.tokens = head;
 
-	/* pass two, replace labels */
+	/* pass two, replace labels, insert static memory */
 	while (A.tokens) {
-		if (A.tokens->type == IDENTIFIER && !Assembler_validateInstruction(&A, A.tokens->word) && A.tokens->next && A.tokens->next->word[0] != ':') {
-			for (const AssemblerLabel* i = A.labels; i; i = i->next) {
-				if (!strcmp(i->identifier, A.tokens->word)) {
-					free(A.tokens->word);
-					sprintf((A.tokens->word = (char *)malloc(128)), "%u", i->index);
-					break;
+		if (!strcmp_lower(A.tokens->word, "let")) {
+			A.tokens = A.tokens->next->next;
+		} else if (A.tokens->type == IDENTIFIER && strcmp_lower(A.tokens->word, "let") && !Assembler_validateInstruction(&A, A.tokens->word)) {
+			if (A.tokens->next && A.tokens->next->word[0] != ':')  {
+				for (const AssemblerLabel* i = A.labels; i; i = i->next) {
+					if (!strcmp(i->identifier, A.tokens->word)) {
+						free(A.tokens->word);
+						sprintf((A.tokens->word = (char *)malloc(128)), "%u", i->index);
+						goto safe;
+					}
 				}
 			}
+			if (A.tokens->prev) {
+				for (const AssemblerConstant* i = A.constants; i; i = i->next) {
+					if (!strcmp(i->identifier, A.tokens->word)) {
+						free(A.tokens->word);
+						sprintf((A.tokens->word = (char *)malloc(128)), "%u", i->index);
+						goto safe;
+					}
+				}
+			}
+			Assembler_die(&A, "unexpected identifier '%s'", A.tokens->word);
+			safe:;
 		}
 		A.tokens = A.tokens->next;
 	}
 	A.tokens = head;
-	
-	/* pass three, assemble */
+
+	/* pass four, assemble */
 	while (A.tokens) {
 		switch (A.tokens->type) {
 			case PUNCT:
@@ -165,7 +189,10 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 				break;
 			case IDENTIFIER:
 			{
-				if (!(ins = Assembler_validateInstruction(&A, A.tokens->word))) {
+				if (!strcmp_lower(A.tokens->word, "let")) {
+					A.tokens = A.tokens->next->next;
+					continue;
+				} else if (!(ins = Assembler_validateInstruction(&A, A.tokens->word))) {
 					Assembler_die(&A, "unknown instruction '%s'", A.tokens->word);
 				}
 				fputc(ins->opcode, tmp_output.handle);
@@ -179,13 +206,13 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 					switch (ins->operands[i]) {
 						case INT64:
 						{
-							uint64_t n = A.tokens->word[1] == 'x' ? strtol(&A.tokens->word[2], NULL, 16) : strtol(A.tokens->word, NULL, 10);
+							uint64_t n = A.tokens->word[1] == 'x' ? strtoll(&A.tokens->word[2], NULL, 16) : strtol(A.tokens->word, NULL, 10);
 							fwrite(&n, 1, sizeof(uint64_t), tmp_output.handle);
 							break;
 						}
 						case INT32:
 						{
-							uint64_t n = A.tokens->word[1] == 'x' ? strtol(&A.tokens->word[2], NULL, 16) : strtol(A.tokens->word, NULL, 10);
+							uint64_t n = A.tokens->word[1] == 'x' ? strtoll(&A.tokens->word[2], NULL, 16) : strtol(A.tokens->word, NULL, 10);
 							fwrite(&n, 1, sizeof(uint32_t), tmp_output.handle);
 							break;
 						}
@@ -204,6 +231,8 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 			case NUMBER:
 				break;
 			case NOTOK:
+				break;
+			default:
 				break;
 		}
 		A.tokens = A.tokens->next;
@@ -271,15 +300,35 @@ Assembler_appendLabel(Assembler* A, const char* identifier, uint32_t index) {
 	}
 }
 
+static void
+Assembler_appendConstant(Assembler* A, const char* identifier, uint32_t index) {
+	AssemblerConstant* constant;
+	size_t idlen;
+	constant = (AssemblerConstant *)malloc(sizeof(AssemblerConstant));
+	idlen = strlen(identifier);
+	constant->identifier = (char *)malloc(idlen + 1);
+	strcpy(constant->identifier, identifier);
+	constant->identifier[idlen] = 0;
+	constant->index = index;
+	constant->next = NULL;
+	if (!A->constants) {
+		A->constants = constant;
+	} else {
+		AssemblerConstant* at = A->constants;
+		while (at->next) at = at->next;
+		at->next = constant;
+	}
+}
+
 /* 0 = not valid, 1 = valid */
 static const AssemblerInstruction*
 Assembler_validateInstruction(Assembler* A, const char* instruction) {
-	for (int i = 0; i <= 0x22; i++) {
+	for (int i = 0; i <= 0x28; i++) {
 		if (!strcmp_lower(instructions[i].name, instruction)) {
 			return &instructions[i];	
 		};
 	}
-	return 0;
+	return NULL;
 }
 
 /* case insensitive strcmp (for various validations) */

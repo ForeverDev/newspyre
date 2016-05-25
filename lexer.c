@@ -16,6 +16,35 @@ Lexer_convertToTokens(const char* source) {
 			L.line++;
 		} else if (c == ' ' || c == '\t') {
 			continue;
+		} else if (c == '"') {
+			char* word;
+			size_t len = 0;
+			const char* at = source;
+			while (*at++ != '"') len++;
+			at--;
+			word = (char *)malloc(len + 1);
+			for (int i = 0; i < len; i++) {
+				switch (*source) {
+					case '\\':
+						switch (*++source) {
+							case 'n':
+								word[i] = '\n';
+								break;
+							case 't':
+								word[i] = '\t';
+								break;
+						}
+						break;
+					default:
+						if (*source == '"') break;
+						word[i] = *source;
+						break;
+				}
+				source++;
+			}
+			word[len] = 0;
+			source++;
+			Lexer_appendToken(&L, word, LITERAL);
 		} else if (ispunct(c)) {
 			char word[2];
 			word[0] = c;
@@ -45,6 +74,8 @@ Lexer_convertToTokens(const char* source) {
 			Lexer_appendToken(&L, word, IDENTIFIER);
 		}
 	}	
+
+	Lexer_printTokens(&L);
 
 	/* tokens on heap, L on stack */
 	return L.tokens;
@@ -78,7 +109,8 @@ Lexer_printTokens(Lexer* L) {
 		printf("%s (%s)\n", at->word, (
 			at->type == PUNCT ? "operator" :
 			at->type == NUMBER ? "number" : 
-			at->type == IDENTIFIER ? "identifier" : "?"
+			at->type == IDENTIFIER ? "identifier" :
+			at->type == LITERAL ? "literal" : "?"
 		));		
 		at = at->next;
 	}
