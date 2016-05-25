@@ -5,6 +5,10 @@
 void SpyL_initializeStandardLibrary(SpyState* S) {
 	Spy_pushC(S, "println", SpyL_println, -1);
 
+	Spy_pushC(S, "fopen", SpyL_fopen, 2);
+	Spy_pushC(S, "fclose", SpyL_fclose, 1);
+	Spy_pushC(S, "fputc", SpyL_fputc, 2);
+
 	Spy_pushC(S, "malloc", SpyL_malloc, 1);
 	Spy_pushC(S, "free", SpyL_free, 1);
 
@@ -14,13 +18,13 @@ void SpyL_initializeStandardLibrary(SpyState* S) {
 
 static uint32_t
 SpyL_println(SpyState* S) {
-	const char* format = (const char *)&S->memory[Spy_popInt(S)];
+	const char* format = Spy_popString(S);
 	while (*format) {
 		switch (*format) {
 			case '%':
 				switch (*++format) {
 					case 's':
-						printf("%s", &S->memory[Spy_popInt(S)]);
+						printf("%s", Spy_popString(S));
 						break;
 					case 'd':
 						printf("%lld", Spy_popInt(S));
@@ -36,6 +40,28 @@ SpyL_println(SpyState* S) {
 		}
 		format++;
 	}
+	return 0;
+}
+
+static uint32_t
+SpyL_fopen(SpyState* S) {
+	Spy_pushInt(S, (uint64_t)fopen(Spy_popString(S), Spy_popString(S)));
+	return 1;
+}
+
+static uint32_t
+SpyL_fclose(SpyState* S) {
+	FILE* f = (FILE *)Spy_popInt(S);
+	if (f) fclose(f);
+	return 0;
+}
+
+/* note called as fputc(FILE*, char) */
+static uint32_t
+SpyL_fputc(SpyState* S) {
+	FILE* f = (FILE *)Spy_popInt(S);
+	char c = (char)Spy_popInt(S);
+	fputc(c, f);
 	return 0;
 }
 

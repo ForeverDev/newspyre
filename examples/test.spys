@@ -1,14 +1,22 @@
-LET thing "HELLO %d\n"
-LET println "println"
+let fopen "fopen"
+let fclose "fclose"
+let fputc "fputc"
+let filename "testing.txt"
+let filemode "wb"
 
-JMP MAIN
+jmp main
 
-FUNC:
-	IPUSH 42
-	IPUSH thing
-	CCALL println 2
-	IPUSH 6
-	IRET
+func:
+	ipush 97
 
-MAIN:
-	CALL FUNC 0
+	ipush filemode
+	ipush filename
+	ccall fopen 2
+	
+	ccall fputc 2
+
+	ipush 0
+	iret
+
+main:
+	call func 0

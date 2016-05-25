@@ -95,6 +95,11 @@ Spy_popFloat(SpyState* S) {
 	return result;
 }
 
+inline char*
+Spy_popString(SpyState* S) {
+	return (char *)&S->memory[Spy_popInt(S)];
+}
+
 void
 Spy_dump(SpyState* S) {
 	for (const uint8_t* i = &S->memory[SIZE_ROM]; i != S->sp + 1; i++) {

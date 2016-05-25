@@ -8,6 +8,11 @@ void SpyL_initializeStandardLibrary(SpyState*);
 /* stdio */
 static uint32_t SpyL_println(SpyState*);
 
+/* file system */
+static uint32_t SpyL_fopen(SpyState*);
+static uint32_t SpyL_fclose(SpyState*);
+static uint32_t SpyL_fputc(SpyState*);
+
 /* memory management */
 static uint32_t SpyL_malloc(SpyState*);
 static uint32_t SpyL_free(SpyState*);

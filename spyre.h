@@ -59,14 +59,19 @@ SpyState*	Spy_newState(uint32_t);
 void		Spy_log(SpyState*, const char*, ...);
 void		Spy_crash(SpyState*, const char*, ...);
 void		Spy_dump(SpyState*);
+
 void		Spy_pushInt(SpyState*, int64_t);
-uint32_t	Spy_readInt32(SpyState*);
-uint64_t	Spy_readInt64(SpyState*);
 int64_t 	Spy_popInt(SpyState*);
 void		Spy_saveInt(SpyState*, uint8_t*, int64_t);
+uint32_t	Spy_readInt32(SpyState*);
+uint64_t	Spy_readInt64(SpyState*);
+
 void		Spy_pushFloat(SpyState*, double);
-double		Spy_readFloat(SpyState*);
 double		Spy_popFloat(SpyState*);
+double		Spy_readFloat(SpyState*);
+
+char*		Spy_popString(SpyState*);
+
 void		Spy_pushC(SpyState*, const char*, uint32_t (*)(SpyState*), int);
 void		Spy_execute(const char*, uint32_t);
 
