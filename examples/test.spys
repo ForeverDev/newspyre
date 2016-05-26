@@ -1,22 +1,26 @@
-let fopen "fopen"
-let fclose "fclose"
-let fputc "fputc"
-let filename "testing.txt"
-let filemode "wb"
+let println "println"
+let format "%d\n"
 
 jmp main
 
-func:
-	ipush 97
-
-	ipush filemode
-	ipush filename
-	ccall fopen 2
-	
-	ccall fputc 2
-
-	ipush 0
+factorial:
+	iarg	1
+	ipush	1
+	ile
+	jz		L00
+	ipush	1
+	iret
+L00:
+	iarg	1
+	iarg	1
+	ipush	1
+	isub
+	call	factorial 1
+	imul	
 	iret
 
 main:
-	call func 0
+	ipush	6
+	call	factorial 1
+	ipush	format
+	ccall	println 2

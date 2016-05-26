@@ -45,21 +45,20 @@ SpyL_println(SpyState* S) {
 
 static uint32_t
 SpyL_fopen(SpyState* S) {
-	Spy_pushInt(S, (uint64_t)fopen(Spy_popString(S), Spy_popString(S)));
+	Spy_pushPointer(S, fopen(Spy_popString(S), Spy_popString(S)));
 	return 1;
 }
 
 static uint32_t
 SpyL_fclose(SpyState* S) {
-	FILE* f = (FILE *)Spy_popInt(S);
-	if (f) fclose(f);
+	fclose((FILE *)Spy_popPointer(S));
 	return 0;
 }
 
 /* note called as fputc(FILE*, char) */
 static uint32_t
 SpyL_fputc(SpyState* S) {
-	FILE* f = (FILE *)Spy_popInt(S);
+	FILE* f = (FILE *)Spy_popPointer(S);
 	char c = (char)Spy_popInt(S);
 	fputc(c, f);
 	return 0;
@@ -134,7 +133,7 @@ SpyL_free(SpyState* S) {
 			free(at);
 			success = 1;
 		}
-		at = at->next;
+		at = at->next; 
 	}
 	if (!success) {
 		Spy_crash(S, errmsg);

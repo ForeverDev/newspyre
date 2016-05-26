@@ -179,7 +179,7 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	}
 	A.tokens = head;
 
-	/* pass four, assemble */
+	/* pass three, assemble */
 	while (A.tokens) {
 		switch (A.tokens->type) {
 			case PUNCT:

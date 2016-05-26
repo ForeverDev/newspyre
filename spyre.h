@@ -66,6 +66,9 @@ void		Spy_saveInt(SpyState*, uint8_t*, int64_t);
 uint32_t	Spy_readInt32(SpyState*);
 uint64_t	Spy_readInt64(SpyState*);
 
+void		Spy_pushPointer(SpyState*, void*);
+void*		Spy_popPointer(SpyState*);
+
 void		Spy_pushFloat(SpyState*, double);
 double		Spy_popFloat(SpyState*);
 double		Spy_readFloat(SpyState*);

@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <ctype.h>
 #include "spyre.h"
+#include "assembler.h"
 #include "api.h"
 
 SpyState*
@@ -72,8 +74,20 @@ Spy_popInt(SpyState* S) {
 
 inline void
 Spy_saveInt(SpyState* S, uint8_t* addr, int64_t value) {
-	int64_t* absolute_addr = (int64_t *)addr;
-	*absolute_addr = value;
+	*(int64_t *)addr = value;
+}
+
+inline void
+Spy_pushPointer(SpyState* S, void* ptr) {
+	S->sp += 8;
+	*(int64_t *)S->sp = (uintptr_t)ptr;
+}
+
+inline void*
+Spy_popPointer(SpyState* S) {
+	void* result = (void *)(*(uintptr_t *)S->sp);
+	S->sp -= 8;
+	return result;
 }
 
 inline void
@@ -103,7 +117,14 @@ Spy_popString(SpyState* S) {
 void
 Spy_dump(SpyState* S) {
 	for (const uint8_t* i = &S->memory[SIZE_ROM]; i != S->sp + 1; i++) {
-		printf("0x%08lx: %02x\n", i - S->memory, *i);	
+		printf("0x%08lx: %02x | %01c | ", i - S->memory, *i, isprint(*i) ? *i : '.');	
+		if ((&S->memory[SIZE_ROM] - i - 1) % 8 == 0) {
+			printf("%d\n", *(int64_t *)i);
+			for (int j = 0; j < 24; j++) {
+				fputc('-', stdout);
+			}
+		}
+		fputc('\n', stdout);
 	}
 }
 
@@ -168,6 +189,9 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 	int64_t a;
 	double b;
 
+	/* IP saver */
+	uint8_t ipsave = 0;
+
 	/* pointers to labels, (direct threading, significantly faster than switch/case) */
 	static const void* opcodes[] = {
 		&&noop, &&ipush, &&iadd, &&isub,
@@ -179,11 +203,20 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 		&&fpush, &&fadd, &&fsub, &&fmul,
 		&&fdiv, &&fgt, &&fge, &&flt, 
 		&&fle, &&fcmp, &&fret, &&ilload,
-		&&illsave, &&iarg, &&iload, &&isave
+		&&ilsave, &&iarg, &&iload, &&isave
 	};
 
 	/* main interpreter loop */
 	dispatch:
+	if (option_flags & SPY_DEBUG) {
+		for (int i = 0; i < 100; i++) {
+			fputc('\n', stdout);
+		}
+		printf("executed %s\n", instructions[ipsave].name);
+		Spy_dump(&S);
+		getchar();
+	}
+	ipsave = *S.ip;
 	goto *opcodes[*S.ip++];
 
 	noop:
@@ -274,14 +307,16 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 	goto dispatch;
 
 	jnz:
+	a = Spy_readInt32(&S);
 	if (Spy_popInt(&S)) {
-		S.ip = (uint8_t *)&S.bytecode[Spy_readInt32(&S)];
+		S.ip = (uint8_t *)&S.bytecode[a];
 	}
 	goto dispatch;
 
 	jz:
+	a = Spy_readInt32(&S);
 	if (!Spy_popInt(&S)) {
-		S.ip = (uint8_t *)&S.bytecode[Spy_readInt32(&S)];
+		S.ip = (uint8_t *)&S.bytecode[a];
 	}
 	goto dispatch;
 
@@ -303,7 +338,7 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 	S.sp = S.bp;
 	S.ip = (uint8_t *)(intptr_t)Spy_popInt(&S);	
 	S.bp = (uint8_t *)(intptr_t)Spy_popInt(&S);
-	S.sp -= Spy_popInt(&S);
+	S.sp -= Spy_popInt(&S) * 8;
 	Spy_pushInt(&S, a);
 	goto dispatch;	
 
@@ -385,15 +420,15 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 	goto dispatch;	
 
 	ilload:
-	Spy_pushInt(&S, *(int64_t *)&S.bp[Spy_readInt32(&S)]);
+	Spy_pushInt(&S, *(int64_t *)&S.bp[Spy_readInt32(&S) * sizeof(uint64_t)]);
 	goto dispatch;
 
-	illsave:
-	Spy_saveInt(&S, &S.bp[Spy_readInt32(&S)], Spy_popInt(&S));
+	ilsave:
+	Spy_saveInt(&S, &S.bp[Spy_readInt32(&S) * sizeof(uint64_t)], Spy_popInt(&S));
 	goto dispatch;
 
 	iarg:
-	Spy_pushInt(&S, *(int64_t *)&S.bp[3*sizeof(uint64_t) + Spy_readInt32(&S)]);
+	Spy_pushInt(&S, *(int64_t *)&S.bp[-2*8 - Spy_readInt32(&S)*8]);
 	goto dispatch;
 
 	iload:
