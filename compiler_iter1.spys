@@ -14,6 +14,13 @@ let ftell		"ftell"
 let fread		"fread"
 let fgetc		"fgetc"
 
+; Constant strings
+let format_char	"%c"
+let format_int	"%d"
+let format_hex	"%x"
+let format_ptr	"%p"
+let format_str	"%s"
+
 jmp main
 
 ; args
@@ -44,19 +51,106 @@ A01:
 	; return length
 	ilload	0x01
 	iret
+
+; args
+;	0 -> char n
+isdigit:
+	iarg	0
+	ipush	'0'
+	ige
+	iarg	0
+	ipush	'9'
+	ige
+	land
+	iret
+
+; args
+;	0 -> char n
+isalpha:
+	iarg	0
+	ipush	'a'
+	ige
+	iarg	0
+	ipush	'z'
+	ige
+	land
+	iarg	0
+	ipush	'A'
+	ige
+	iarg	0
+	ipush	'Z'
+	ige
+	land
+	lor
+	iret
+
+; args
+;	0 -> char n
+isalnum:
+	iarg	0
+	call	isalpha, 1
+	iarg	0
+	call	isdigit, 1
+	lor
+	iret
+
+; token format
+;	0 -> type
+;	1 -> word
+;	2 -> next
+
+; args
+;	0 -> type
+;	1 -> word
+;	2 -> next
+__Token_new:
+	ipush	0 ; 0x00 -> token storage
+
+	; token_storage = malloc(3);
+	ipush	3
+	ccall	malloc
+	ilsave	0x00
+	
+	; token_storage->type = args[0x00]
+	ilload	0x00
+	iadd	0
+	iarg	0
+	isave
+
+	; token_storage->word = malloc(strlen(args[0x01]) + 1);
+	ilload	0x00
+	padd	1
+	iarg	1
+	call	strlen, 1
+	ipush	1
+	iadd
+	ccall	malloc
+	isave
+	
+	; return token_storage;
+	ilload	0x00
+	iret
 	
 
 ; args:
 ;	0 -> nargs (can ignore)
 ;	1 -> input file name
 main:
-	res		10
+	res		0x100
 
 	; stack map
 	;	0x00 input file name
 	;	0x01 input file handle
 	;	0x02 input file contents
 	;	0x03 input file contents length
+	;	0x04 current character
+	;	0x05 line count
+
+	;	[0x50, 0x100) general purpose
+
+	; @ s[0x05] = 0
+	ipush	0
+	ilsave	0x05
 
 	; @ s[0x00] = inf_name
 	iarg	1
@@ -94,10 +188,65 @@ main:
 	ilload	0x01
 	ccall	fread
 
-	let		format "%s"
+B00:
+	; while (*s[0x02]);
 	ilload	0x02
-	ipush	format
+	cder
+	jz		B01
+
+	; @ s[0x04] = *s[0x02]++
+	ilload	0x02
+	cder	
+	ilsave	0x04
+	ilload	0x02
+	icinc	1
+	ilsave	0x02
+	
+	; if (s[0x04] == ' ' || s[0x04] == '\t') continue;
+	ilload	0x04
+	ipush	' '
+	icmp
+	ilload	0x04
+	ipush	'\t'
+	icmp
+	lor
+	jnz		Bcont
+
+	; if (s[0x04] == '\n') s[0x05]++; continue;
+	ilload	0x04
+	ipush	'\n'
+	icmp
+	jz		B07
+	ilload	0x05
+	icinc	1
+	ilsave	0x05
+	jmp		Bcont
+B07:
+	
+	ilload	0x04
+	call	isdigit, 1
+	ipush	format_int
 	ccall	println
 
+	; if (isdigit(s[0x04])) goto B02;
+	ilload	0x04
+	call	isdigit, 1
+	jnz		B02
+	; if (isalpha(s[0x04])) goto B03;
+	ilload	0x04
+	call	isalpha, 1
+	jnz		B03
+B02: ; is a number
+	
+	jmp		Bcont
+B03:
+	jmp		Bcont
+B04:
+B05:
+B06:
 
-
+Bcont: ; continue label
+	
+	jmp		B00
+B01:
+	ipush	0

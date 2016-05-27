@@ -18,6 +18,21 @@ Lexer_convertToTokens(const char* source) {
 			continue;
 		} else if (c == ';') {
 			while (*source && *source != '\n') source++;
+		} else if (c == '\'') {
+			char* word = (char *)malloc(128);
+			if (*source == '\\') {
+				char result = 0;
+				switch (*++source) {
+					case '\\': result = '\\'; break;
+					case 't':  result = '\t'; break;
+					case 'n':  result = '\n'; break;
+				}
+				sprintf(word, "%d", result);
+			} else {
+				sprintf(word, "%d", *source++);
+			}
+			source++;
+			Lexer_appendToken(&L, word, NUMBER);
 		} else if (c == '"') {
 			char* word;
 			size_t len = 0;

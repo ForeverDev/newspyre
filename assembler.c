@@ -50,7 +50,11 @@ const AssemblerInstruction instructions[0xFF] = {
 	{"ILEA",	0x2A, {INT32}},
 	{"IDER",	0x2B, {NO_OPERAND}},
 	{"ICINC",	0x2C, {INT64}},
-	{"CDER",	0x2D, {NO_OPERAND}}
+	{"CDER",	0x2D, {NO_OPERAND}},
+	{"LOR",		0x2E, {NO_OPERAND}},
+	{"LAND",	0x2F, {NO_OPERAND}},
+	{"PADD",	0x30, {NO_OPERAND}},
+	{"PSUB",	0x31, {NO_OPERAND}}
 };
 
 void
@@ -104,9 +108,9 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	if (!(A.tokens = head = Lexer_convertToTokens(input.contents))) goto done;
 
 	/* pass one, find all labels */
-	while (A.tokens->next) {
+	while (A.tokens && A.tokens->next) {
 		if (A.tokens->type == IDENTIFIER) {
-			if ((A.tokens->next->type == PUNCT && (A.tokens->next->word[0] == ':' || A.tokens->next->word[0] == ','))) {
+			if ((A.tokens->next->type == PUNCT && (A.tokens->next->word[0] == ':'))) {
 				if (A.tokens->next->word[0] == ':') {
 					Assembler_appendLabel(&A, A.tokens->word, index);
 				}
@@ -147,7 +151,6 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 						ins->operands[i] == FLOAT64 ? sizeof(double) : 0
 					);
 				}
-				if (!A.tokens->next) break;
 			}
 		}
 		A.tokens = A.tokens->next;
@@ -331,7 +334,7 @@ Assembler_appendConstant(Assembler* A, const char* identifier, uint32_t index) {
 /* 0 = not valid, 1 = valid */
 static const AssemblerInstruction*
 Assembler_validateInstruction(Assembler* A, const char* instruction) {
-	for (int i = 0; i <= 0x2D; i++) {
+	for (int i = 0; i <= 0x2F; i++) {
 		if (!strcmp_lower(instructions[i].name, instruction)) {
 			return &instructions[i];	
 		};

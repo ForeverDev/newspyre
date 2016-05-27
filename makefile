@@ -1,5 +1,5 @@
 CC = gcc
-CF = -std=c11
+CF = -std=c99
 OBJ = spyre.o main.o api.o lexer.o assembler.o
 
 all: spy.exe

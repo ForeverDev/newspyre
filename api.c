@@ -35,15 +35,19 @@ SpyL_println(SpyState* S) {
 						printf("%lld", Spy_popInt(S));
 						break;
 					case 'x':
-						printf("%x", Spy_popInt(S));
+						printf("%llX", Spy_popInt(S));
 						break;
 					case 'p':
-						printf("0x%x", Spy_popPointer(S));
+						printf("0x%llX", (uint64_t)Spy_popPointer(S));
 						break;
 					case 'f':
 						printf("%f", Spy_popFloat(S));
 						break;
+					case 'c':
+						printf("%c\n", (char)Spy_popInt(S));
+						break;
 				}
+				break;
 			case '\\':
 				switch (*++format) {
 					case 'n': fputc('\n', stdout); break;
@@ -55,6 +59,7 @@ SpyL_println(SpyState* S) {
 		}
 		format++;
 	}
+	fputc('\n', stdout);
 	return 0;
 }
 

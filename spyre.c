@@ -19,11 +19,6 @@ Spy_newState(uint32_t option_flags) {
 	S->c_functions = NULL;
 	S->memory_chunks = NULL;
 	SpyL_initializeStandardLibrary(S);
-	Spy_log(S, "Spyre state created, %d bytes of memory (%d %s)\n", 
-		SIZE_MEMORY, 
-		(SIZE_MEMORY / 0x400) > 0x400 ?: (SIZE_MEMORY / 0x100000),
-		(SIZE_MEMORY / 0x400) > 0x400 ? "KiB" : "MiB"
-	);
 	return S;
 }
 
@@ -53,10 +48,10 @@ Spy_pushInt(SpyState* S, int64_t value) {
 	*(int64_t *)S->sp = value;
 }
 
-inline uint32_t
+inline uint64_t
 Spy_readInt32(SpyState* S) {
 	S->ip += 4;
-	return *(uint32_t *)(S->ip - 4);
+	return (uint64_t)(*(uint32_t *)(S->ip - 4));
 }
 
 inline uint64_t
@@ -124,7 +119,7 @@ Spy_popString(SpyState* S) {
 void
 Spy_dumpStack(SpyState* S) {
 	for (const uint8_t* i = &S->memory[SIZE_ROM] + 2; i <= S->sp + 7; i++) {
-		printf("0x%08lx: %02x | %01c | ", i - S->memory, *i, isprint(*i) ? *i : '.');	
+		printf("0x%08lx: %02x | %c | ", i - S->memory, *i, isprint(*i) ? *i : '.');	
 		if ((&S->memory[SIZE_ROM] - i + 1) % 8 == 0) {
 			fputc('\n', stdout);
 			for (int j = 0; j < 24; j++) {
@@ -140,15 +135,15 @@ Spy_dumpHeap(SpyState* S) {
 	SpyMemoryChunk* at = S->memory_chunks;
 	int index = 0;
 	while (at) {
-		printf("chunk %d:\n\t%d pages\n\t%d bytes\n\t", index, at->pages, at->pages * SIZE_PAGE);
+		printf("chunk %d:\n\t%zu pages\n\t%lu bytes\n\t", index, at->pages, at->pages * SIZE_PAGE);
 		int filled = 0;
 		for (int i = 0; i < at->pages * SIZE_PAGE; i++) {
 			if (at->absolute_address[i]) {
 				filled++;
 			}
 		}
-		printf("%d%% non-zero\n\tvm address:0x%X\n\t", (100 * filled) / (at->pages * SIZE_PAGE), at->vm_address);
-		printf("absolute address: 0x%X\n", at->absolute_address);
+		printf("%lu%% non-zero\n\tvm address: 0x%llX\n\t", (100 * filled) / (at->pages * SIZE_PAGE), at->vm_address);
+		printf("absolute address: 0x%llX\n", (uint64_t)at->absolute_address);
 		at = at->next;
 		index++;
 	}
@@ -175,6 +170,9 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	SpyState S;
 
 	S.memory = (uint8_t *)calloc(1, SIZE_MEMORY);
+	if (!S.memory) {
+		Spy_crash(&S, "couldn't allocate memory\n");
+	}
 	S.ip = NULL; /* to be assigned when code is executed */
 	S.sp = &S.memory[START_STACK + 2]; /* stack grows upwards */
 	S.bp = &S.memory[START_STACK + 2];
@@ -183,11 +181,6 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	S.c_functions = NULL;
 	S.memory_chunks = NULL;
 	SpyL_initializeStandardLibrary(&S);
-	Spy_log(&S, "Spyre state created, %d bytes of memory (%d %s)\n", 
-		SIZE_MEMORY, 
-		(SIZE_MEMORY / 0x400) > 0x400 ?: (SIZE_MEMORY / 0x100000),
-		(SIZE_MEMORY / 0x400) > 0x400 ? "KiB" : "MiB"
-	);
 
 	FILE* f;
 	unsigned long long flen;
@@ -217,7 +210,7 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 		/* allocated space for the string, now find tail of malloc blocks */
 		SpyMemoryChunk* chunk = S.memory_chunks;
 		while (chunk->next) chunk = chunk->next;
-		strcpy(chunk->absolute_address, argv[i]);
+		strcpy((char *)chunk->absolute_address, argv[i]);
 	}
 
 	/* push nargs */
@@ -249,7 +242,8 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 		&&fdiv, &&fgt, &&fge, &&flt, 
 		&&fle, &&fcmp, &&fret, &&ilload,
 		&&ilsave, &&iarg, &&iload, &&isave,
-		&&res, &&ilea, &&ider, &&icinc, &&cder
+		&&res, &&ilea, &&ider, &&icinc, &&cder,
+		&&lor, &&land, &&padd, &&psub
 	};
 
 	/* main interpreter loop */
@@ -468,7 +462,7 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	goto dispatch;
 
 	iload:
-	Spy_pushInt(&S, *(int64_t *)&S.memory[Spy_popInt(&S)]);
+	Spy_pushInt(&S, *(int64_t *)&S.memory[(uint64_t)Spy_popInt(&S)]);
 	goto dispatch;
 
 	isave:
@@ -494,6 +488,24 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 
 	cder:
 	Spy_pushInt(&S, *(uint8_t *)&S.memory[Spy_popInt(&S)]);
+	goto dispatch;
+	
+	lor:
+	Spy_pushInt(&S, Spy_popInt(&S) || Spy_popInt(&S));
+	goto dispatch;
+
+	land:
+	Spy_pushInt(&S, Spy_popInt(&S) && Spy_popInt(&S));
+	goto dispatch;
+
+	padd:
+	a = Spy_popInt(&S) * 8;
+	Spy_pushInt(&S, Spy_popInt(&S) + a);
+	goto dispatch;
+
+	psub:
+	a = Spy_popInt(&S) * 8;
+	Spy_pushInt(&S, Spy_popInt(&S) - a);
 	goto dispatch;
 
 	done:
