@@ -106,18 +106,18 @@ isalnum:
 __Token_new:
 	ipush	0 ; 0x00 -> token storage
 
-	; token_storage = malloc(3);
+	; token = malloc(3);
 	ipush	3
 	ccall	malloc
 	ilsave	0x00
 	
-	; token_storage->type = args[0x00]
+	; token->type = args[0x00]
 	ilload	0x00
-	iadd	0
+	padd	0
 	iarg	0
 	isave
 
-	; token_storage->word = malloc(strlen(args[0x01]) + 1);
+	; token->word = malloc(strlen(args[0x01]) + 1);
 	ilload	0x00
 	padd	1
 	iarg	1
@@ -126,8 +126,14 @@ __Token_new:
 	iadd
 	ccall	malloc
 	isave
+
+	; token->next = args[0x02];
+	ilload	0x00
+	padd	2
+	iarg	2
+	isave
 	
-	; return token_storage;
+	; return token;
 	ilload	0x00
 	iret
 	
