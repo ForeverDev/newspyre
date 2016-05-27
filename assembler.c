@@ -29,7 +29,7 @@ const AssemblerInstruction instructions[0xFF] = {
 	{"JMP",		0x15, {INT32}},
 	{"CALL",	0x16, {INT32, INT32}},
 	{"IRET",	0x17, {NO_OPERAND}},
-	{"CCALL",	0x18, {INT32, INT32}},
+	{"CCALL",	0x18, {INT32}},
 	{"FPUSH",	0x19, {FLOAT64}},
 	{"FADD",	0x1A, {NO_OPERAND}},
 	{"FSUB",	0x1B, {NO_OPERAND}},
@@ -255,7 +255,7 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	tmp_input.contents = NULL;
 
 	/* write the headers for the output file */
-	const uint32_t magic = 0xD3ADC0DE;
+	const uint32_t magic = 0x5950535F;
 	const uint32_t rom = sizeof(uint32_t) * 2;
 	const uint32_t code = (sizeof(uint32_t) * 3) + rom_size;
 	fwrite(&magic, sizeof(uint32_t), 1, output.handle);
@@ -331,7 +331,7 @@ Assembler_appendConstant(Assembler* A, const char* identifier, uint32_t index) {
 /* 0 = not valid, 1 = valid */
 static const AssemblerInstruction*
 Assembler_validateInstruction(Assembler* A, const char* instruction) {
-	for (int i = 0; i <= 0x2C; i++) {
+	for (int i = 0; i <= 0x2D; i++) {
 		if (!strcmp_lower(instructions[i].name, instruction)) {
 			return &instructions[i];	
 		};

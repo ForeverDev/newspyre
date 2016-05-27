@@ -30,7 +30,6 @@ typedef struct SpyMemoryChunk SpyMemoryChunk;
 struct SpyCFunction {
 	const char*		identifier;
 	uint32_t		(*function)(SpyState*);
-	int				nargs;
 	SpyCFunction*	next;
 };
 
@@ -78,7 +77,7 @@ double		Spy_readFloat(SpyState*);
 void		Spy_pushString(SpyState*, const char*);
 char*		Spy_popString(SpyState*);
 
-void		Spy_pushC(SpyState*, const char*, uint32_t (*)(SpyState*), int);
+void		Spy_pushC(SpyState*, const char*, uint32_t (*)(SpyState*));
 void		Spy_execute(const char*, uint32_t, int, char**);
 
 #endif

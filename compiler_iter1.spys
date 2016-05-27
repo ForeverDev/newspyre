@@ -1,14 +1,18 @@
 ; C functions that are needed
-let print "print"
-let println "println"
-let fopen "fopen"
-let fclose "fclose"
-let fputc "fputc"
-let fputs "fputs"
-let malloc "malloc"
-let free "free"
+let print		"print"
+let println		"println"
 
-let format "%s\n"
+let malloc		"malloc"
+let free		"free"
+
+let fopen		"fopen"
+let fclose		"fclose"
+let fputc		"fputc"
+let fputs		"fputs"
+let fseek		"fseek"
+let ftell		"ftell"
+let fread		"fread"
+let fgetc		"fgetc"
 
 jmp main
 
@@ -42,9 +46,56 @@ A01:
 	iret
 	
 
+; args:
+;	0 -> nargs (can ignore)
+;	1 -> input file name
 main:
-	; ARGS
-	;	0 -> nargs
-	;	1 -> executable
+	res		10
+
+	; stack map
+	;	0x00 input file name
+	;	0x01 input file handle
+	;	0x02 input file contents
+	;	0x03 input file contents length
+
+	; @ s[0x00] = inf_name
 	iarg	1
-	call	strlen 1
+	ilsave	0x00	
+	
+	; @ s[0x01] = fopen(s[0x00], "rb");	
+	let		inf_readmode "rb"
+	ipush	inf_readmode
+	ilload	0x00
+	ccall	fopen
+	ilsave	0x01
+
+	; @ s[0x02] contains contents of inf
+	; @ fseek(s[0x01], SEEK_END, 0);
+	ipush	0
+	ipush	2
+	ilload	0x01
+	ccall	fseek
+	; @ s[0x03] = ftell(s[0x01]);
+	ilload	0x01
+	ccall	ftell
+	ilsave	0x03
+	; @ fseek(s[0x01], SEEK_SET, 0);
+	ipush	0
+	ipush	1
+	ilload	0x01
+	ccall	fseek
+	; @ s[0x02] = malloc(s[0x03]);
+	ilload	0x03
+	ccall	malloc
+	ilsave	0x02
+	; @ fread(s[0x01], s[0x02], s[0x03]);
+	ilload	0x03
+	ilload	0x02
+	ilload	0x01
+	ccall	fread
+
+	let		format "%s"
+	ilload	0x02
+	ipush	format
+	ccall	println
+	

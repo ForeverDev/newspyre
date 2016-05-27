@@ -155,12 +155,11 @@ Spy_dumpHeap(SpyState* S) {
 }
 
 void
-Spy_pushC(SpyState* S, const char* identifier, uint32_t (*function)(SpyState*), int nargs) {
+Spy_pushC(SpyState* S, const char* identifier, uint32_t (*function)(SpyState*)) {
 	SpyCFunction* container = (SpyCFunction *)malloc(sizeof(SpyCFunction));
 	container->identifier = identifier;
 	container->function = function;
 	container->next = NULL;
-	container->nargs = nargs;
 	if (!S->c_functions) {
 		S->c_functions = container;
 	} else {
@@ -392,22 +391,12 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	ccall:
 	{
 		uint32_t name_index = Spy_readInt32(&S);
-		uint32_t nargs = Spy_readInt32(&S);
 		SpyCFunction* cf = S.c_functions;
 		while (cf && strcmp(cf->identifier, (const char *)&S.memory[name_index])) cf = cf->next;
-		if (cf) {
-			/* note -1 represents vararg */
-			if (cf->nargs != nargs && cf->nargs >= 0) {
-				Spy_crash(&S, "Attempt to call C function '%s' with the incorret number of arguments (wanted %d, got %d)\n", 
-					&S.memory[name_index],
-					cf->nargs,
-					nargs
-				);
-			} 
-			cf->function(&S);
-		} else {
+		if (!cf) {
 			Spy_crash(&S, "Attempt to call undefined C function '%s'\n", &S.memory[name_index]);
 		}
+		cf->function(&S);
 	}
 	goto dispatch;
 		

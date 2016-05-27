@@ -25,7 +25,7 @@ OPCODE, NAME, OPERANDS
 15	JMP		int32
 16	CALL	int32 nargs, int32 addr
 17	IRET	
-18	CCALL	int32 nargs, int32 name_addr
+18	CCALL	int32 name_addr
 19	FPUSH	float64
 1A	FADD	
 1B	FSUB

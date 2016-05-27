@@ -3,18 +3,22 @@
 #include "api.h"
 
 void SpyL_initializeStandardLibrary(SpyState* S) {
-	Spy_pushC(S, "println", SpyL_println, -1);
+	Spy_pushC(S, "println", SpyL_println);
 
-	Spy_pushC(S, "fopen", SpyL_fopen, 2);
-	Spy_pushC(S, "fclose", SpyL_fclose, 1);
-	Spy_pushC(S, "fputc", SpyL_fputc, 2);
-	Spy_pushC(S, "fputs", SpyL_fputs, 2);
+	Spy_pushC(S, "fopen", SpyL_fopen);
+	Spy_pushC(S, "fclose", SpyL_fclose);
+	Spy_pushC(S, "fputc", SpyL_fputc);
+	Spy_pushC(S, "fputs", SpyL_fputs);
+	Spy_pushC(S, "fgetc", SpyL_fgetc);
+	Spy_pushC(S, "fread", SpyL_fread);
+	Spy_pushC(S, "ftell", SpyL_ftell);
+	Spy_pushC(S, "fseek", SpyL_fseek);
 
-	Spy_pushC(S, "malloc", SpyL_malloc, 1);
-	Spy_pushC(S, "free", SpyL_free, 1);
+	Spy_pushC(S, "malloc", SpyL_malloc);
+	Spy_pushC(S, "free", SpyL_free);
 
-	Spy_pushC(S, "min", SpyL_min, -1);
-	Spy_pushC(S, "max", SpyL_max, -1);
+	Spy_pushC(S, "min", SpyL_min);
+	Spy_pushC(S, "max", SpyL_max);
 }
 
 static uint32_t
@@ -56,7 +60,9 @@ SpyL_println(SpyState* S) {
 
 static uint32_t
 SpyL_fopen(SpyState* S) {
-	Spy_pushPointer(S, fopen(Spy_popString(S), Spy_popString(S)));
+	const char* filename = Spy_popString(S);
+	const char* mode = Spy_popString(S);
+	Spy_pushPointer(S, fopen(filename, mode));
 	return 1;
 }
 
@@ -87,6 +93,39 @@ static uint32_t
 SpyL_fprintf(SpyState* S) {
 	FILE* f = (FILE *)Spy_popPointer(S);
 	const char* format = Spy_popString(S);
+	return 0;
+}
+
+static uint32_t
+SpyL_fgetc(SpyState* S) {
+	Spy_pushInt(S, fgetc((FILE *)Spy_popPointer(S)));
+	return 1;
+}
+
+/* note called as fread(FILE*, void*, int) */
+static uint32_t
+SpyL_fread(SpyState* S) {
+	FILE* f = (FILE *)Spy_popPointer(S);
+	void* dest = &S->memory[Spy_popInt(S)];
+	uint64_t bytes = Spy_popInt(S);
+	fread(dest, 1, bytes, f);
+	return 0;
+}
+
+static uint32_t
+SpyL_ftell(SpyState* S) {
+	Spy_pushInt(S, ftell((FILE *)Spy_popPointer(S)));
+	return 1;
+}
+
+/* note called as fseek(FILE*, int mode, int offset) */
+static uint32_t
+SpyL_fseek(SpyState* S) {
+	FILE* f = Spy_popPointer(S);
+	uint64_t mode = Spy_popInt(S);
+	uint64_t offset = Spy_popInt(S);
+	fseek(f, offset, (mode == 1 ? SEEK_SET : SEEK_END));
+	return 0;
 }
 
 uint32_t

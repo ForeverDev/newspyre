@@ -14,6 +14,10 @@ static uint32_t SpyL_fclose(SpyState*);
 static uint32_t SpyL_fputc(SpyState*);
 static uint32_t SpyL_fputs(SpyState*);
 static uint32_t SpyL_fprintf(SpyState*);
+static uint32_t SpyL_fgetc(SpyState*);
+static uint32_t SpyL_fread(SpyState*);
+static uint32_t SpyL_ftell(SpyState*);
+static uint32_t SpyL_fseek(SpyState*);
 
 /* memory management */
 uint32_t		SpyL_malloc(SpyState*);
