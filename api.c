@@ -8,6 +8,7 @@ void SpyL_initializeStandardLibrary(SpyState* S) {
 	Spy_pushC(S, "fopen", SpyL_fopen, 2);
 	Spy_pushC(S, "fclose", SpyL_fclose, 1);
 	Spy_pushC(S, "fputc", SpyL_fputc, 2);
+	Spy_pushC(S, "fputs", SpyL_fputs, 2);
 
 	Spy_pushC(S, "malloc", SpyL_malloc, 1);
 	Spy_pushC(S, "free", SpyL_free, 1);
@@ -24,19 +25,29 @@ SpyL_println(SpyState* S) {
 			case '%':
 				switch (*++format) {
 					case 's':
-						printf("%s", Spy_popString(S));
+						fputs(Spy_popString(S), stdout);
 						break;
 					case 'd':
 						printf("%lld", Spy_popInt(S));
 						break;
+					case 'x':
+						printf("%x", Spy_popInt(S));
+						break;
+					case 'p':
+						printf("0x%x", Spy_popPointer(S));
+						break;
+					case 'f':
+						printf("%f", Spy_popFloat(S));
+						break;
 				}
 			case '\\':
 				switch (*++format) {
-					case 'n': printf("\n"); break;
-					case 't': printf("\t"); break;
+					case 'n': fputc('\n', stdout); break;
+					case 't': fputc('\t', stdout); break;
+					case '\\': fputc('\\', stdout); break;
 				}
 			default:
-				printf("%c", *format);
+				fputc(*format, stdout);
 		}
 		format++;
 	}
@@ -59,12 +70,26 @@ SpyL_fclose(SpyState* S) {
 static uint32_t
 SpyL_fputc(SpyState* S) {
 	FILE* f = (FILE *)Spy_popPointer(S);
-	char c = (char)Spy_popInt(S);
-	fputc(c, f);
+	fputc((char)Spy_popInt(S), f);
 	return 0;
 }
 
+/* note called as fputs(FILE*, char*) */
 static uint32_t
+SpyL_fputs(SpyState* S) {
+	FILE* f = (FILE *)Spy_popPointer(S);
+	fputs(Spy_popString(S), f);
+	return 0;	
+}
+
+/* note called as fprintf(FILE*, char*, ...) */
+static uint32_t
+SpyL_fprintf(SpyState* S) {
+	FILE* f = (FILE *)Spy_popPointer(S);
+	const char* format = Spy_popString(S);
+}
+
+uint32_t
 SpyL_malloc(SpyState* S) {
 	SpyMemoryChunk* chunk = (SpyMemoryChunk *)malloc(sizeof(SpyMemoryChunk));
 	if (!chunk) Spy_crash(S, "Out of memory\n");
@@ -100,6 +125,7 @@ SpyL_malloc(SpyState* S) {
 				found_slot = 1;
 				break;
 			}
+			at = at->next;
 		}
 		if (!found_slot) {
 			chunk->absolute_address = at->absolute_address + at->pages * SIZE_PAGE;
@@ -117,11 +143,11 @@ SpyL_malloc(SpyState* S) {
 
 static uint32_t
 SpyL_free(SpyState* S) {
-	static const char* errmsg = "Attempt to free an invalid pointer\n";
+	static const char* errmsg = "Attempt to free an invalid pointer (0x%x)";
 	uint8_t success = 0;
 	uint64_t vm_address = Spy_popInt(S);
 	SpyMemoryChunk* at = S->memory_chunks;
-	if (!at) Spy_crash(S, errmsg);
+	if (!at) Spy_crash(S, errmsg, vm_address);
 	while (at) {
 		if (at->vm_address == vm_address) {
 			if (at->next) {
@@ -136,7 +162,7 @@ SpyL_free(SpyState* S) {
 		at = at->next; 
 	}
 	if (!success) {
-		Spy_crash(S, errmsg);
+		Spy_crash(S, errmsg, vm_address);
 	}
 	return 0;
 }

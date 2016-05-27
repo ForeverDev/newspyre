@@ -7,6 +7,7 @@
 /* option flags */
 #define SPY_NOFLAG	0x00
 #define SPY_DEBUG	0x01
+#define SPY_STEP	0x02
 
 /* runtime flags */
 #define SPY_CMPRESULT 0x01
@@ -15,7 +16,7 @@
 #define SIZE_MEMORY 0x100000
 #define SIZE_STACK	0x010000
 #define SIZE_ROM	0x010000
-#define SIZE_PAGE	0x20
+#define SIZE_PAGE	8
 
 #define START_ROM	0
 #define START_STACK	(SIZE_ROM)
@@ -58,7 +59,8 @@ struct SpyState {
 SpyState*	Spy_newState(uint32_t);
 void		Spy_log(SpyState*, const char*, ...);
 void		Spy_crash(SpyState*, const char*, ...);
-void		Spy_dump(SpyState*);
+void		Spy_dumpStack(SpyState*);
+void		Spy_dumpHeap(SpyState*);
 
 void		Spy_pushInt(SpyState*, int64_t);
 int64_t 	Spy_popInt(SpyState*);
@@ -73,9 +75,10 @@ void		Spy_pushFloat(SpyState*, double);
 double		Spy_popFloat(SpyState*);
 double		Spy_readFloat(SpyState*);
 
+void		Spy_pushString(SpyState*, const char*);
 char*		Spy_popString(SpyState*);
 
 void		Spy_pushC(SpyState*, const char*, uint32_t (*)(SpyState*), int);
-void		Spy_execute(const char*, uint32_t);
+void		Spy_execute(const char*, uint32_t, int, char**);
 
 #endif

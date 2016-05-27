@@ -1,0 +1,50 @@
+; C functions that are needed
+let print "print"
+let println "println"
+let fopen "fopen"
+let fclose "fclose"
+let fputc "fputc"
+let fputs "fputs"
+let malloc "malloc"
+let free "free"
+
+let format "%s\n"
+
+jmp main
+
+; args
+; 0 -> pointer to string
+strlen:
+	iarg	0 ; string (0x00)
+	ipush	0 ; length (0x01)
+A00:
+	; *string == 0
+	ilload	0x00
+	cder
+	ipush	0
+	icmp
+	jnz		A01
+	
+	; string++
+	ilload	0x00
+	icinc	1
+	ilsave	0x00
+	
+	; length++
+	ilload	0x01
+	icinc	1
+	ilsave	0x01
+
+	jmp		A00
+A01:
+	; return length
+	ilload	0x01
+	iret
+	
+
+main:
+	; ARGS
+	;	0 -> nargs
+	;	1 -> executable
+	iarg	1
+	call	strlen 1

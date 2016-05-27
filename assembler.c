@@ -45,7 +45,12 @@ const AssemblerInstruction instructions[0xFF] = {
 	{"ILSAVE",	0x25, {INT32}},
 	{"IARG",	0x26, {INT32}},
 	{"ILOAD",	0x27, {NO_OPERAND}},
-	{"ISAVE",	0x28, {NO_OPERAND}}
+	{"ISAVE",	0x28, {NO_OPERAND}},
+	{"RES",		0x29, {INT32}},
+	{"ILEA",	0x2A, {INT32}},
+	{"IDER",	0x2B, {NO_OPERAND}},
+	{"ICINC",	0x2C, {INT64}},
+	{"CDER",	0x2D, {NO_OPERAND}}
 };
 
 void
@@ -97,7 +102,7 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	Token* head;
 	
 	if (!(A.tokens = head = Lexer_convertToTokens(input.contents))) goto done;
-	
+
 	/* pass one, find all labels */
 	while (A.tokens->next) {
 		if (A.tokens->type == IDENTIFIER) {
@@ -200,6 +205,9 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 				for (int i = 0; i < 4; i++) {
 					if (ins->operands[i] == NO_OPERAND) break;
 					A.tokens = A.tokens->next;
+					if (A.tokens && A.tokens->word[0] == ',') {
+						A.tokens = A.tokens->next;
+					}
 					if (!A.tokens) {
 						Assembler_die(&A, "expected operand(s)");
 					}
@@ -323,7 +331,7 @@ Assembler_appendConstant(Assembler* A, const char* identifier, uint32_t index) {
 /* 0 = not valid, 1 = valid */
 static const AssemblerInstruction*
 Assembler_validateInstruction(Assembler* A, const char* instruction) {
-	for (int i = 0; i <= 0x28; i++) {
+	for (int i = 0; i <= 0x2C; i++) {
 		if (!strcmp_lower(instructions[i].name, instruction)) {
 			return &instructions[i];	
 		};

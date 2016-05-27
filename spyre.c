@@ -109,22 +109,48 @@ Spy_popFloat(SpyState* S) {
 	return result;
 }
 
+inline void
+Spy_pushString(SpyState* S, const char* str) {
+	while (*str) {
+		Spy_pushInt(S, (int64_t)*str++);
+	}
+}
+
 inline char*
 Spy_popString(SpyState* S) {
 	return (char *)&S->memory[Spy_popInt(S)];
 }
 
 void
-Spy_dump(SpyState* S) {
-	for (const uint8_t* i = &S->memory[SIZE_ROM]; i != S->sp + 1; i++) {
+Spy_dumpStack(SpyState* S) {
+	for (const uint8_t* i = &S->memory[SIZE_ROM] + 2; i <= S->sp + 7; i++) {
 		printf("0x%08lx: %02x | %01c | ", i - S->memory, *i, isprint(*i) ? *i : '.');	
-		if ((&S->memory[SIZE_ROM] - i - 1) % 8 == 0) {
-			printf("%d\n", *(int64_t *)i);
+		if ((&S->memory[SIZE_ROM] - i + 1) % 8 == 0) {
+			fputc('\n', stdout);
 			for (int j = 0; j < 24; j++) {
 				fputc('-', stdout);
 			}
 		}
 		fputc('\n', stdout);
+	}
+}
+
+void
+Spy_dumpHeap(SpyState* S) {
+	SpyMemoryChunk* at = S->memory_chunks;
+	int index = 0;
+	while (at) {
+		printf("chunk %d:\n\t%d pages\n\t%d bytes\n\t", index, at->pages, at->pages * SIZE_PAGE);
+		int filled = 0;
+		for (int i = 0; i < at->pages * SIZE_PAGE; i++) {
+			if (at->absolute_address[i]) {
+				filled++;
+			}
+		}
+		printf("%d%% non-zero\n\tvm address:0x%X\n\t", (100 * filled) / (at->pages * SIZE_PAGE), at->vm_address);
+		printf("absolute address: 0x%X\n", at->absolute_address);
+		at = at->next;
+		index++;
 	}
 }
 
@@ -145,14 +171,14 @@ Spy_pushC(SpyState* S, const char* identifier, uint32_t (*function)(SpyState*), 
 }
 
 void
-Spy_execute(const char* filename, uint32_t option_flags) {
+Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) {
 
 	SpyState S;
 
 	S.memory = (uint8_t *)calloc(1, SIZE_MEMORY);
 	S.ip = NULL; /* to be assigned when code is executed */
-	S.sp = &S.memory[START_STACK - 1]; /* stack grows upwards */
-	S.bp = &S.memory[START_STACK - 1];
+	S.sp = &S.memory[START_STACK + 2]; /* stack grows upwards */
+	S.bp = &S.memory[START_STACK + 2];
 	S.option_flags = option_flags;
 	S.runtime_flags = 0;
 	S.c_functions = NULL;
@@ -184,7 +210,27 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 	/* prepare instruction pointer, point it to code */	
 	S.bytecode = &S.bytecode[*(uint32_t *)&S.bytecode[8]];
 	S.ip = S.bytecode;
-	
+
+	/* push command line arguments */
+	for (int i = argc - 1; i >= 0; i--) {
+		Spy_pushInt(&S, strlen(argv[i]));
+		SpyL_malloc(&S);
+		/* allocated space for the string, now find tail of malloc blocks */
+		SpyMemoryChunk* chunk = S.memory_chunks;
+		while (chunk->next) chunk = chunk->next;
+		strcpy(chunk->absolute_address, argv[i]);
+	}
+
+	/* push nargs */
+	Spy_pushInt(&S, argc);
+
+	/* push junk for nargs, ip, and bp onto the stack to maintain alignment for arg instruction */
+	Spy_pushInt(&S, 0x4242424242424242);
+	Spy_pushInt(&S, 0xBAADBEEFDEADC0DE);
+	Spy_pushInt(&S, 0x0DAF0DDAF0DDAF0D);
+	/* assign BP to SP to simulate a function call */
+	S.bp = S.sp;
+
 	/* general purpose vars for interpretation */
 	int64_t a;
 	double b;
@@ -203,17 +249,18 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 		&&fpush, &&fadd, &&fsub, &&fmul,
 		&&fdiv, &&fgt, &&fge, &&flt, 
 		&&fle, &&fcmp, &&fret, &&ilload,
-		&&ilsave, &&iarg, &&iload, &&isave
+		&&ilsave, &&iarg, &&iload, &&isave,
+		&&res, &&ilea, &&ider, &&icinc, &&cder
 	};
 
 	/* main interpreter loop */
 	dispatch:
-	if (option_flags & SPY_DEBUG) {
+	if (option_flags & SPY_STEP && option_flags & SPY_DEBUG) {
 		for (int i = 0; i < 100; i++) {
 			fputc('\n', stdout);
 		}
-		printf("executed %s\n", instructions[ipsave].name);
-		Spy_dump(&S);
+		Spy_dumpStack(&S);
+		printf("\nexecuted %s\n", instructions[ipsave].name);
 		getchar();
 	}
 	ipsave = *S.ip;
@@ -327,8 +374,8 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 	call:
 	a = Spy_readInt32(&S);
 	Spy_pushInt(&S, Spy_readInt32(&S)); /* push number of arguments */
-	Spy_pushInt(&S, (uintptr_t)S.bp); /* push base pointer */
-	Spy_pushInt(&S, (uintptr_t)S.ip); /* push return address */
+	Spy_pushPointer(&S, (void *)S.bp); /* push base pointer */
+	Spy_pushPointer(&S, (void *)S.ip); /* push return address */
 	S.bp = S.sp;
 	S.ip = (uint8_t *)&S.bytecode[a];
 	goto dispatch;
@@ -336,8 +383,8 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 	iret:
 	a = Spy_popInt(&S); /* return value */
 	S.sp = S.bp;
-	S.ip = (uint8_t *)(intptr_t)Spy_popInt(&S);	
-	S.bp = (uint8_t *)(intptr_t)Spy_popInt(&S);
+	S.ip = (uint8_t *)Spy_popPointer(&S);	
+	S.bp = (uint8_t *)Spy_popPointer(&S);
 	S.sp -= Spy_popInt(&S) * 8;
 	Spy_pushInt(&S, a);
 	goto dispatch;	
@@ -413,22 +460,22 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 	fret:
 	b = Spy_popFloat(&S); /* return value */
 	S.sp = S.bp;
-	S.ip = (uint8_t *)(uintptr_t)Spy_popInt(&S);	
-	S.bp = (uint8_t *)(uintptr_t)Spy_popInt(&S);
+	S.ip = (uint8_t *)Spy_popPointer(&S);	
+	S.bp = (uint8_t *)Spy_popPointer(&S);
 	S.sp -= Spy_popInt(&S);
 	Spy_pushFloat(&S, a);
 	goto dispatch;	
 
 	ilload:
-	Spy_pushInt(&S, *(int64_t *)&S.bp[Spy_readInt32(&S) * sizeof(uint64_t)]);
+	Spy_pushInt(&S, *(int64_t *)&S.bp[Spy_readInt32(&S)*8 + 8]);
 	goto dispatch;
 
 	ilsave:
-	Spy_saveInt(&S, &S.bp[Spy_readInt32(&S) * sizeof(uint64_t)], Spy_popInt(&S));
+	Spy_saveInt(&S, &S.bp[Spy_readInt32(&S)*8 + 8], Spy_popInt(&S));
 	goto dispatch;
 
 	iarg:
-	Spy_pushInt(&S, *(int64_t *)&S.bp[-2*8 - Spy_readInt32(&S)*8]);
+	Spy_pushInt(&S, *(int64_t *)&S.bp[-3*8 - Spy_readInt32(&S)*8]);
 	goto dispatch;
 
 	iload:
@@ -440,8 +487,32 @@ Spy_execute(const char* filename, uint32_t option_flags) {
 	Spy_saveInt(&S, &S.memory[Spy_popInt(&S)], a);
 	goto dispatch;
 
+	res:
+	S.sp += Spy_readInt32(&S) * 8;
+	goto dispatch;
+
+	ilea:
+	Spy_pushPointer(&S, (void *)&S.bp[Spy_readInt32(&S)]);
+	goto dispatch;
+
+	ider:
+	Spy_pushInt(&S, *(uint64_t *)&S.memory[Spy_popInt(&S)]);
+	goto dispatch;
+
+	icinc:
+	Spy_pushInt(&S, Spy_popInt(&S) + Spy_readInt64(&S));
+	goto dispatch;
+
+	cder:
+	Spy_pushInt(&S, *(uint8_t *)&S.memory[Spy_popInt(&S)]);
+	goto dispatch;
+
 	done:
-	Spy_dump(&S);
+	if (option_flags & SPY_DEBUG) {
+		Spy_dumpStack(&S);
+		Spy_dumpHeap(&S);
+		printf("\nSpyre process terminated\n");
+	}
 
 	return;
 

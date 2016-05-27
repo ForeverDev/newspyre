@@ -16,6 +16,8 @@ Lexer_convertToTokens(const char* source) {
 			L.line++;
 		} else if (c == ' ' || c == '\t') {
 			continue;
+		} else if (c == ';') {
+			while (*source && *source != '\n') source++;
 		} else if (c == '"') {
 			char* word;
 			size_t len = 0;
@@ -62,11 +64,11 @@ Lexer_convertToTokens(const char* source) {
 			word[len + 1] = 0;
 			source += len;
 			Lexer_appendToken(&L, word, NUMBER);
-		} else if (isalpha(c)) {
+		} else if (isalpha(c) || c == '_') {
 			char* word;
 			size_t len = 0;
 			const char* at = source;
-			while (isalnum(*at++) && ++len);
+			while ((isalnum(*at) || *at == '_') && ++len) at++;
 			word = (char *)malloc(len + 2);	
 			memcpy(word, source - 1, len + 1);
 			word[len + 1] = 0;

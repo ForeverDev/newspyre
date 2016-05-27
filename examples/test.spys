@@ -1,26 +1,26 @@
 let println "println"
+let malloc "malloc"
 let format "%d\n"
 
 jmp main
 
-factorial:
-	iarg	1
-	ipush	1
-	ile
-	jz		L00
-	ipush	1
-	iret
-L00:
-	iarg	1
-	iarg	1
-	ipush	1
-	isub
-	call	factorial 1
-	imul	
+some_func:
+	res		1
+	ipush	0x100
+	ccall	malloc, 1
+	ilsave	0
+	ilload	0
+	ipush	0x2A
+	isave
+	ilload	0
+	iload
+	ipush	format
+	ccall	println, 2
+	ipush	0
 	iret
 
 main:
-	ipush	6
-	call	factorial 1
-	ipush	format
-	ccall	println 2
+	call	some_func, 0
+
+
+
