@@ -143,7 +143,7 @@ Spy_dumpHeap(SpyState* S) {
 			}
 		}
 		printf("%lu%% non-zero\n\tvm address: 0x%llX\n\t", (100 * filled) / (at->pages * SIZE_PAGE), at->vm_address);
-		printf("absolute address: 0x%llX\n", (uint64_t)at->absolute_address);
+		printf("absolute address: 0x%llX\n", (uintptr_t)at->absolute_address);
 		at = at->next;
 		index++;
 	}
@@ -243,16 +243,18 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 		&&fle, &&fcmp, &&fret, &&ilload,
 		&&ilsave, &&iarg, &&iload, &&isave,
 		&&res, &&ilea, &&ider, &&icinc, &&cder,
-		&&lor, &&land, &&padd, &&psub
+		&&lor, &&land, &&padd, &&psub, &&log
 	};
 
 	/* main interpreter loop */
 	dispatch:
+	if (S.sp >= &S.memory[START_HEAP]) {
+		Spy_crash(&S, "stack overflow");
+	}
 	if (option_flags & SPY_STEP && option_flags & SPY_DEBUG) {
 		for (int i = 0; i < 100; i++) {
 			fputc('\n', stdout);
 		}
-		Spy_dumpStack(&S);
 		printf("\nexecuted %s\n", instructions[ipsave].name);
 		getchar();
 	}
@@ -506,6 +508,10 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	psub:
 	a = Spy_popInt(&S) * 8;
 	Spy_pushInt(&S, Spy_popInt(&S) - a);
+	goto dispatch;
+
+	log:
+	printf("%llu\n", Spy_readInt32(&S));
 	goto dispatch;
 
 	done:

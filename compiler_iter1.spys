@@ -193,6 +193,12 @@ main:
 	ilload	0x02
 	ilload	0x01
 	ccall	fread
+	; @ s[0x02][s[0x03]] = 0;
+	ilload	0x02
+	ilload	0x03
+	iadd	
+	ipush	0
+	isave
 
 B00:
 	; while (*s[0x02]);
@@ -228,11 +234,8 @@ B00:
 	ilsave	0x05
 	jmp		Bcont
 B07:
-	
-	ilload	0x04
-	call	isdigit, 1
-	ipush	format_int
-	ccall	println
+
+	; note store general purpose buffer at 0x50
 
 	; if (isdigit(s[0x04])) goto B02;
 	ilload	0x04
@@ -242,8 +245,55 @@ B07:
 	ilload	0x04
 	call	isalpha, 1
 	jnz		B03
+
+	ilload	0x04
+	ipush	format_int
+	ccall	println
+		
+	jmp		Bcont
 B02: ; is a number
-	
+	; be safe and allocate 64 bytes for a number
+	; s[0x50] = malloc(64);
+	ipush	64
+	ccall	malloc
+	ilsave	0x50
+B02_00:
+	; while (isdigit((s[0x04] = *s[0x02]++)));
+	ilload	0x02
+	cder	
+	ilsave	0x04
+	ilload	0x02
+	icinc	1
+	ilsave	0x02
+	ilload	0x04
+	call	isdigit, 1
+	jz		B02_01
+
+	; *s[0x50]++ = s[0x04]
+	ilload	0x50
+	ipush	format_ptr
+	ccall	println
+
+	ilload	0x50
+	ilload	0x04
+	; @SEGFAULT HERE
+	isave
+	ilload	0x50
+	icinc	1
+	ilsave	0x50
+
+	jmp		B02_00
+B02_01:
+
+	; *s[0x50] = '\0';
+	ilload	0x50
+	ipush	0
+	isave
+
+	ilload	0x50
+	ipush	format_str
+	ccall	println
+
 	jmp		Bcont
 B03:
 	jmp		Bcont
