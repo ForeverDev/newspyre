@@ -1,8 +1,20 @@
+main stack
+0x00			-> INF name
+0x01			-> INF handle
+0x02			-> INF contents
+0x03			-> INF length
+0x04			-> current character
+0x05			-> line count
+0x06			-> token list
+[0x50, 0x100)	-> general purpose
+---------------------------------------
+
 TOKEN TYPES
 0 -> null
 1 -> identifier
 2 -> operator
 3 -> string
+4 -> number
 
 TOKEN MAP
 0 -> type
@@ -13,10 +25,13 @@ __Token_new
 args
 	0 -> type
 	1 -> word
-	2 -> next
 
 __Token_append
 args
 	0 -> head
 	1 -> type
 	2 -> word
+
+__Token_print
+args
+	0 -> head

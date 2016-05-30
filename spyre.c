@@ -258,6 +258,7 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 		printf("\nexecuted %s\n", instructions[ipsave].name);
 		getchar();
 	}
+	//printf("%s\n", instructions[ipsave].name);
 	ipsave = *S.ip;
 	goto *opcodes[*S.ip++];
 
@@ -477,7 +478,7 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	goto dispatch;
 
 	ilea:
-	Spy_pushPointer(&S, (void *)&S.bp[Spy_readInt32(&S)]);
+	Spy_pushPointer(&S, (void *)(&S.bp[Spy_readInt32(&S)*8 + 8] - S.memory));
 	goto dispatch;
 
 	ider:

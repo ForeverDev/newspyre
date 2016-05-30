@@ -62,7 +62,7 @@ Lexer_convertToTokens(const char* source) {
 			word[len] = 0;
 			source++;
 			Lexer_appendToken(&L, word, LITERAL);
-		} else if (ispunct(c)) {
+		} else if (ispunct(c) && c != '_') {
 			char word[2];
 			word[0] = c;
 			word[1] = 0;

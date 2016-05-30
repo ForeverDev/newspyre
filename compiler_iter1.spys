@@ -53,6 +53,37 @@ A01:
 	iret
 
 ; args
+;	0 -> destination
+;	1 -> source
+strcpy:
+	iarg	0 ; s[0x00] = destination
+	iarg	1 ; s[0x01] = source
+Z00:
+	; while (*s[0x01]);
+	ilload	0x01
+	cder
+	jz		Z01
+	
+	; *s[0x01]+ = *s[0x00]+
+	ilload	0x00
+	ilload	0x01
+	cder
+	isave
+
+	ilload	0x00
+	icinc	1
+	ilsave	0x00
+
+	ilload	0x01
+	icinc	1
+	ilsave	0x01
+
+	jmp		Z00
+Z01:
+	ipush	0
+	iret
+
+; args
 ;	0 -> char n
 isdigit:
 	iarg	0
@@ -105,30 +136,41 @@ isalnum:
 __Token_new:
 	ipush	0 ; 0x00 -> token storage
 
-	; token = malloc(3);
-	ipush	3
+	; token = malloc(24);
+	ipush	24
 	ccall	malloc
 	ilsave	0x00
 	
 	; token->type = args[0x00]
 	ilload	0x00
-	padd	0
+	ipush	0
+	padd
 	iarg	0
 	isave
 
-	; token->word = malloc(strlen(args[0x01]) + 1);
+	; token->word = malloc(strlen(args[1]) + 1);
 	ilload	0x00
-	padd	1
+	ipush	1
+	padd
 	iarg	1
 	call	strlen, 1
 	ipush	1
 	iadd
 	ccall	malloc
 	isave
+
+	; strcpy(token->word, args[1]);
+	iarg	1
+	ilload	0x00
+	ipush	1
+	padd
+	ider
+	call	strcpy, 2
 	
 	; token->next = NULL;
 	ilload	0x00
-	padd	2
+	ipush	2
+	padd	
 	ipush	0
 	isave
 
@@ -137,41 +179,88 @@ __Token_new:
 	iret
 
 ; args
-;	0 -> Token** head
-;	1 -> type
-;	2 -> word
-__Token_append:
-	res		1
+;	0 -> Token**	head
+;	1 -> int		type
+;	2 -> char*		word
 
-	; s[0x00] = __Token_new(arg[1], arg[2]);
-	iarg	3
+__Token_append:
+	res		3
+
+	; s[0x00] = arg0 (token)
+	iarg	0
+	ilsave	0x00
+
+	; s[0x01] = __Token_new(arg[1], arg[2]);
 	iarg	2
 	iarg	1
-	call	__Token_new, 3
-	ilsave	0x00
-	
-	iarg	0	
+	call	__Token_new, 2
+	ilsave	0x01
+
+	; s[0x02] = *token
+	iarg	0
 	ider
+	ilsave	0x02
+	
+	ilload	0x02	
 	jz		C01
 C00: ; *head != NULL
 C00_00:
 	; while ((*token)->next);
-	ilload	0x00
+	ilload	0x02
+	ipush	2
+	padd
 	ider
-	padd	2
 	jz		C00_01
 	
 	; (*token) = (*token)->next;	
+	ilload	0x02
+	ilload	0x02
+	ipush	2
+	padd
+	ider
+	ilsave	0x02
+
 	jmp		C00_00
 C00_01:
+	; (*token)->next = s[0x01]
+	ilload	0x02
+	ipush	2
+	padd	
+	ilload	0x01
+	isave
+
 	jmp		C02
 C01: ; *head == NULL
 	; *head = s[0x00]	
-	iarg	0
-	ider
 	ilload	0x00
+	ilload	0x01
 	isave
 C02:
+	ipush	0
+	iret
+
+__Token_print:
+	iarg	0
+
+D00:
+	ilload	0x00
+	jz		D01
+
+	ilload	0x00
+	ipush	1
+	padd
+	ider
+	ipush	format_str
+	ccall	println
+
+	ilload	0x00
+	ipush	2
+	padd
+	ider
+	ilsave	0x00
+
+	jmp		D00
+D01:
 	ipush	0
 	iret
 	
@@ -189,12 +278,17 @@ main:
 	;	0x03 input file contents length
 	;	0x04 current character
 	;	0x05 line count
+	;	0x06 token list
 
 	;	[0x50, 0x100) general purpose
 
 	; @ s[0x05] = 0
 	ipush	0
 	ilsave	0x05
+
+	; @ s[0x06] = 0
+	ipush	0
+	ilsave	0x06
 
 	; @ s[0x00] = inf_name
 	iarg	1
@@ -314,15 +408,23 @@ B02_00:
 	jmp		B02_00
 B02_01:
 
-	; *s[0x50] = '\0';
+	; *s[0x51] = '\0';
 	ilload	0x51
 	ipush	0
 	isave
-
+	
+	; __Token_append(&s[0x06], TYPE_NUMBER (4), s[0x50]);
 	ilload	0x50
-	ipush	format_str
-	ccall	println
+	ipush	4
+	ilea	0x06
+	call	__Token_append, 3
 
+	; s[0x02]--;
+	ilload	0x02
+	ipush	1
+	isub
+	ilsave	0x02
+	
 	jmp		Bcont
 B03: ; is an identifier
 	
@@ -411,10 +513,12 @@ B03_03:
 	ilload	0x51
 	ipush	0
 	isave
-
-	ilload	0x50
-	ipush	format_str
-	ccall	println
+	
+	; __Token_append(&s[0x06], TYPE_IDENTIFIER (1), s[0x50]);
+	ilload	0x50	
+	ipush	1
+	ilea	0x06
+	call	__Token_append, 3
 
 	jmp		Bcont
 B04:
@@ -429,4 +533,7 @@ Bcont: ; continue label
 	ilsave	0x02	
 	jmp		B00
 B01:
+	ilload	0x06
+	call	__Token_print, 1
+
 	ipush	0
