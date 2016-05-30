@@ -20,6 +20,9 @@ let format_int	"%d"
 let format_hex	"%x"
 let format_ptr	"%p"
 let format_str	"%s"
+let newline		"\n"
+let tab			"\t"
+let nullchar	"\0"
 
 jmp main
 
