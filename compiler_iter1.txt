@@ -1,0 +1,22 @@
+TOKEN TYPES
+0 -> null
+1 -> identifier
+2 -> operator
+3 -> string
+
+TOKEN MAP
+0 -> type
+1 -> word
+2 -> next
+
+__Token_new 
+args
+	0 -> type
+	1 -> word
+	2 -> next
+
+__Token_append
+args
+	0 -> head
+	1 -> type
+	2 -> word
