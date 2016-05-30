@@ -143,7 +143,7 @@ Spy_dumpHeap(SpyState* S) {
 			}
 		}
 		printf("%lu%% non-zero\n\tvm address: 0x%llX\n\t", (100 * filled) / (at->pages * SIZE_PAGE), at->vm_address);
-		printf("absolute address: 0x%llX\n", (uintptr_t)at->absolute_address);
+		printf("absolute address: 0x%lX\n", (uintptr_t)at->absolute_address);
 		at = at->next;
 		index++;
 	}

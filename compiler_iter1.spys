@@ -60,7 +60,7 @@ isdigit:
 	ige
 	iarg	0
 	ipush	'9'
-	ige
+	ile
 	land
 	iret
 
@@ -72,14 +72,14 @@ isalpha:
 	ige
 	iarg	0
 	ipush	'z'
-	ige
+	ile
 	land
 	iarg	0
 	ipush	'A'
 	ige
 	iarg	0
 	ipush	'Z'
-	ige
+	ile
 	land
 	lor
 	iret
@@ -102,7 +102,6 @@ isalnum:
 ; args
 ;	0 -> type
 ;	1 -> word
-;	2 -> next
 __Token_new:
 	ipush	0 ; 0x00 -> token storage
 
@@ -126,15 +125,54 @@ __Token_new:
 	iadd
 	ccall	malloc
 	isave
-
-	; token->next = args[0x02];
+	
+	; token->next = NULL;
 	ilload	0x00
 	padd	2
-	iarg	2
+	ipush	0
 	isave
-	
+
 	; return token;
 	ilload	0x00
+	iret
+
+; args
+;	0 -> Token** head
+;	1 -> type
+;	2 -> word
+__Token_append:
+	res		1
+
+	; s[0x00] = __Token_new(arg[1], arg[2]);
+	iarg	3
+	iarg	2
+	iarg	1
+	call	__Token_new, 3
+	ilsave	0x00
+	
+	iarg	0	
+	ider
+	jz		C01
+C00: ; *head != NULL
+C00_00:
+	; while ((*token)->next);
+	ilload	0x00
+	ider
+	padd	2
+	jz		C00_01
+	
+	; (*token) = (*token)->next;	
+	jmp		C00_00
+C00_01:
+	jmp		C02
+C01: ; *head == NULL
+	; *head = s[0x00]	
+	iarg	0
+	ider
+	ilload	0x00
+	isave
+C02:
+	ipush	0
 	iret
 	
 
@@ -206,14 +244,11 @@ B00:
 	cder
 	jz		B01
 
-	; @ s[0x04] = *s[0x02]++
+	; s[0x04] = *s[0x02]
 	ilload	0x02
-	cder	
+	cder
 	ilsave	0x04
-	ilload	0x02
-	icinc	1
-	ilsave	0x02
-	
+
 	; if (s[0x04] == ' ' || s[0x04] == '\t') continue;
 	ilload	0x04
 	ipush	' '
@@ -245,10 +280,6 @@ B07:
 	ilload	0x04
 	call	isalpha, 1
 	jnz		B03
-
-	ilload	0x04
-	ipush	format_int
-	ccall	println
 		
 	jmp		Bcont
 B02: ; is a number
@@ -257,6 +288,9 @@ B02: ; is a number
 	ipush	64
 	ccall	malloc
 	ilsave	0x50
+	; s[0x51] = s[0x50]; (this is the writing pointer)
+	ilload	0x50
+	ilsave	0x51
 B02_00:
 	; while (isdigit((s[0x04] = *s[0x02]++)));
 	ilload	0x02
@@ -269,24 +303,19 @@ B02_00:
 	call	isdigit, 1
 	jz		B02_01
 
-	; *s[0x50]++ = s[0x04]
-	ilload	0x50
-	ipush	format_ptr
-	ccall	println
-
-	ilload	0x50
+	; *s[0x51]++ = s[0x04]
+	ilload	0x51
 	ilload	0x04
-	; @SEGFAULT HERE
 	isave
-	ilload	0x50
+	ilload	0x51
 	icinc	1
-	ilsave	0x50
+	ilsave	0x51
 
 	jmp		B02_00
 B02_01:
 
 	; *s[0x50] = '\0';
-	ilload	0x50
+	ilload	0x51
 	ipush	0
 	isave
 
@@ -295,14 +324,109 @@ B02_01:
 	ccall	println
 
 	jmp		Bcont
-B03:
+B03: ; is an identifier
+	
+	; we're going to scan ahead and find the end of the identifier
+	; s[0x52] = length of identifier
+	; s[0x53] = saved contents pointer
+	ipush	0
+	ilsave	0x52
+	ilload	0x02
+	ilsave	0x53
+
+	; s[0x52]++
+	ilload	0x52
+	iadd	1
+	ilsave	0x52
+
+	; s[0x02]++
+	ilload	0x02
+	iadd	1
+	ilsave	0x02
+
+B03_00:
+	; while isalnum(*s[0x02]++);
+	ilload	0x02
+	cder
+	ilload	0x02
+	icinc	1
+	ilsave	0x02
+	call	isalnum, 1
+	jz		B03_01
+
+	; s[0x52]++
+	ilload	0x52
+	icinc	1
+	ilsave	0x52
+
+	jmp		B03_00
+B03_01:
+
+	; restore the cotents ptr
+	ilload	0x53
+	ilsave	0x02
+
+	; s[0x50] = malloc(s[0x52] + 1)
+	ilload	0x52
+	ipush	1
+	iadd
+	ccall	malloc
+	ilsave	0x50
+	; s[0x51] = s[0x50]
+	ilload	0x50
+	ilsave	0x51
+	
+	; s[0x54] = 0; (loop counter)
+	ipush	0
+	ilsave	0x54
+B03_02:
+	; loop again, this time copying to s[0x50]
+	; while (s[0x54] < s[0x52]);
+	ilload	0x54
+	ilload	0x52
+	ilt
+	jz		B03_03
+
+	; *s[0x51]++ = *s[0x02]++	
+	ilload	0x51
+	ilload	0x51
+	icinc	1
+	ilsave	0x51
+	ilload	0x02
+	cder
+	ilload	0x02
+	icinc	1
+	ilsave	0x02 ; now stack is (s[0x51], *s[0x02])
+	isave
+
+	; s[0x54]++;
+	ilload	0x54
+	icinc	1
+	ilsave	0x54
+
+	jmp		B03_02
+B03_03:
+
+	; *[0x51] = '\0'
+	ilload	0x51
+	ipush	0
+	isave
+
+	ilload	0x50
+	ipush	format_str
+	ccall	println
+
 	jmp		Bcont
 B04:
 B05:
 B06:
 
 Bcont: ; continue label
-	
+
+	; s[0x02]++;
+	ilload	0x02
+	icinc	1
+	ilsave	0x02	
 	jmp		B00
 B01:
 	ipush	0

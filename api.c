@@ -38,7 +38,7 @@ SpyL_println(SpyState* S) {
 						printf("%llX", Spy_popInt(S));
 						break;
 					case 'p':
-						printf("0x%llX", (uintptr_t)Spy_popPointer(S));
+						printf("0x%lX", (uintptr_t)Spy_popPointer(S));
 						break;
 					case 'f':
 						printf("%f", Spy_popFloat(S));
@@ -143,7 +143,9 @@ SpyL_malloc(SpyState* S) {
 	if (size == 0) chunk->pages = 1;
 	else if (size % SIZE_PAGE > 0) {
 		chunk->pages = (size + (SIZE_PAGE - (size % SIZE_PAGE))) / SIZE_PAGE;
-	}	
+	} else {
+		chunk->pages = size / SIZE_PAGE;	
+	}
 	
 	/* find an open memory slot */
 	if (!S->memory_chunks) {
