@@ -4,8 +4,8 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include "spyre.h"
-#include "assembler.h"
 #include "api.h"
+#include "../assembler/assembler.h"
 
 SpyState*
 Spy_newState(uint32_t option_flags) {
@@ -243,7 +243,8 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 		&&fle, &&fcmp, &&fret, &&ilload,
 		&&ilsave, &&iarg, &&iload, &&isave,
 		&&res, &&ilea, &&ider, &&icinc, &&cder,
-		&&lor, &&land, &&padd, &&psub, &&log
+		&&lor, &&land, &&padd, &&psub, &&log,
+		&&vret
 	};
 
 	/* main interpreter loop */
@@ -258,7 +259,6 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 		printf("\nexecuted %s\n", instructions[ipsave].name);
 		getchar();
 	}
-	//printf("%s\n", instructions[ipsave].name);
 	ipsave = *S.ip;
 	goto *opcodes[*S.ip++];
 
@@ -515,6 +515,13 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	printf("%llu\n", Spy_readInt32(&S));
 	goto dispatch;
 
+	vret:
+	S.sp = S.bp;
+	S.ip = (uint8_t *)Spy_popPointer(&S);	
+	S.bp = (uint8_t *)Spy_popPointer(&S);
+	S.sp -= Spy_popInt(&S) * 8;
+	goto dispatch;
+
 	done:
 	if (option_flags & SPY_DEBUG) {
 		Spy_dumpStack(&S);
@@ -525,3 +532,4 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	return;
 
 }
+

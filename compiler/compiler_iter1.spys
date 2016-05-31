@@ -83,8 +83,7 @@ Z00:
 
 	jmp		Z00
 Z01:
-	ipush	0
-	iret
+	vret
 
 ; args
 ;	0 -> char n
@@ -127,6 +126,50 @@ isalnum:
 	call	isdigit, 1
 	lor
 	iret
+
+; args
+;	0 -> char n
+ispunct:
+	; return (
+	;	(n >= '!' && n <= '/') ||
+	;	(n >= ':' && n <= '@') ||
+	;	(n >= '[' && n <= '\'') ||
+	;	(n >= '{' && n <= '~')
+	; );
+	iarg	0
+	ilload	'!'
+	ige
+	iarg	0
+	ilload	'/'
+	ile
+	land
+	iarg	0
+	ilload	':'
+	ige
+	iarg	0
+	ilload '@'
+	ile
+	land
+	lor
+	iarg	0
+	ilload	'['
+	ige
+	iarg	0
+	ilload	'\''
+	ile
+	land
+	lor
+	iarg	0
+	ilload	'{'
+	ige
+	iarg	0
+	ilload	'~'
+	ile
+	land
+	lor
+
+	iret
+
 
 ; token format
 ;	0 -> type
@@ -239,12 +282,10 @@ C01: ; *head == NULL
 	ilload	0x01
 	isave
 C02:
-	ipush	0
-	iret
+	vret
 
 __Token_print:
 	iarg	0
-
 D00:
 	ilload	0x00
 	jz		D01
@@ -264,9 +305,7 @@ D00:
 
 	jmp		D00
 D01:
-	ipush	0
-	iret
-	
+	vret	
 
 ; args:
 ;	0 -> nargs (can ignore)
@@ -334,7 +373,6 @@ main:
 	iadd	
 	ipush	0
 	isave
-
 B00:
 	; while (*s[0x02]);
 	ilload	0x02
@@ -368,16 +406,33 @@ B00:
 B07:
 
 	; note store general purpose buffer at 0x50
+	
+	; if (s[0x04] == '\n') s[0x05]++; continue;
+	ilload	0x04
+	ipush	'\n'
+	icmp	
+	jz		B07_00
+	
+	; s[0x05]++;
+	ilload	0x05
+	icinc	1
+	ilsave	0x05
 
-	; if (isdigit(s[0x04])) goto B02;
+	jmp		Bcont	
+B07_00:
+
+	; else if (isdigit(s[0x04])) goto B02;
 	ilload	0x04
 	call	isdigit, 1
 	jnz		B02
-	; if (isalpha(s[0x04])) goto B03;
+	; else if (isalpha(s[0x04])) goto B03;
 	ilload	0x04
 	call	isalpha, 1
 	jnz		B03
-		
+	; else if (ispunct(s[0x04])) goto B04;
+	ilload	0x04
+	call	ispunct, 1
+	jnz		B04	
 	jmp		Bcont
 B02: ; is a number
 	; be safe and allocate 64 bytes for a number
@@ -416,9 +471,9 @@ B02_01:
 	ipush	0
 	isave
 	
-	; __Token_append(&s[0x06], TYPE_NUMBER (4), s[0x50]);
+	; __Token_append(&s[0x06], TYPE_NUMBER (3), s[0x50]);
 	ilload	0x50
-	ipush	4
+	ipush	3
 	ilea	0x06
 	call	__Token_append, 3
 
@@ -524,7 +579,56 @@ B03_03:
 	call	__Token_append, 3
 
 	jmp		Bcont
-B04:
+B04: ; ispunct
+	; s[0x50] = malloc(2);
+	ipush	2
+	ccall	malloc
+	ilsave	0x50
+	
+	; push token type onto the stack
+	ilload	0x04	
+	ipush	'!'
+	icmp	
+	jz		B04_00
+	ipush	4	
+	jmp		B04_done	
+B04_00:
+	ilload	0x04
+	ipush	'%'
+	icmp
+	jz		B04_01
+	ipush	5
+	jmp		B04_done
+B04_01:
+	ilload	0x04
+	ipush	'&'
+	icmp
+	jz		B04_02
+	ilload	0x02
+	icinc	1
+	cder
+	ipush	'&'
+	icmp
+	jz		B04_01_00
+	ipush	6
+	jmp		B04_done
+B04_01_00:
+	; is &&
+	ilload	0x02
+	icinc	1
+	ilsave	0x02
+	ipush	6
+	jmp		B04_done
+B04_02:
+	ipush	0
+B04_done:
+	ilsave	0x51
+
+	ilload	0x51
+	ipush	format_int
+	ccall	println
+
+	jmp		Bcont
 B05:
 B06:
 
@@ -536,7 +640,4 @@ Bcont: ; continue label
 	ilsave	0x02	
 	jmp		B00
 B01:
-	ilload	0x06
-	call	__Token_print, 1
-
 	ipush	0

@@ -1,28 +1,28 @@
 CC = gcc
 CF = -std=c99
-OBJ = spyre.o main.o api.o lexer.o assembler.o
+OBJ = build/spyre.o build/main.o build/api.o build/asmlexer.o build/assembler.o
 
 all: spy.exe
 
 spy.exe: $(OBJ)
 	$(CC) $(CF) $(OBJ) -o spy.exe
-	rm -Rf *.o
+	rm -Rf build/*.o
 
-spyre.o: 
-	$(CC) $(CF) -c spyre.c -o spyre.o
+build/spyre.o: 
+	$(CC) $(CF) -c interpreter/spyre.c -o build/spyre.o
 
-api.o:
-	$(CC) $(CF) -c api.c -o api.o
+build/api.o:
+	$(CC) $(CF) -c interpreter/api.c -o build/api.o
 
-lexer.o:
-	$(CC) $(CF) -c lexer.c -o lexer.o
+build/asmlexer.o:
+	$(CC) $(CF) -c assembler/asmlexer.c -o build/asmlexer.o
 
-assembler.o:
-	$(CC) $(CF) -c assembler.c -o assembler.o
+build/assembler.o:
+	$(CC) $(CF) -c assembler/assembler.c -o build/assembler.o
 
-main.o:
-	$(CC) $(CF) -c main.c -o main.o
+build/main.o:
+	$(CC) $(CF) -c main.c -o build/main.o
 
 clean:
-	rm -Rf *.o
+	rm -Rf build/*.o
 	rm spy.exe

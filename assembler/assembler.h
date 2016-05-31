@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include "lexer.h"
+#include "asmlexer.h"
 
 #define TMPFILE_NAME ".SPYRE_TEMP_FILE"
 

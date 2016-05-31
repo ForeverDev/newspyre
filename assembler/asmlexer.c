@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include "lexer.h"
+#include "asmlexer.h"
 
 Token*
 Lexer_convertToTokens(const char* source) {
@@ -24,8 +24,10 @@ Lexer_convertToTokens(const char* source) {
 				char result = 0;
 				switch (*++source) {
 					case '\\': result = '\\'; break;
+					case '\'': result = '\''; break;
 					case 't':  result = '\t'; break;
 					case 'n':  result = '\n'; break;
+					case '0':  result = 0;	  break;
 				}
 				sprintf(word, "%d", result);
 			} else {
@@ -49,6 +51,18 @@ Lexer_convertToTokens(const char* source) {
 								break;
 							case 't':
 								word[i] = '\t';
+								break;
+							case '"':
+								word[i] = '"';
+								break;
+							case '0':
+								word[i] = 0;
+								break;
+							case '\\':
+								word[i] = '\\';
+								break;
+							case '\'':
+								word[i] = '\'';
 								break;
 						}
 						break;

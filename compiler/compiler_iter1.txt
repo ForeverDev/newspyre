@@ -9,13 +9,6 @@ main stack
 [0x50, 0x100)	-> general purpose
 ---------------------------------------
 
-TOKEN TYPES
-0 -> null
-1 -> identifier
-2 -> operator
-3 -> string
-4 -> number
-
 TOKEN MAP
 0 -> type
 1 -> word
@@ -35,3 +28,13 @@ args
 __Token_print
 args
 	0 -> head
+
+TOKEN TYPES
+0 -> null
+1 -> identifier
+2 -> string
+3 -> number
+4 -> not (!)
+5 -> mod (%)
+6 -> addr (&)
+7 -> logical and (&&)
