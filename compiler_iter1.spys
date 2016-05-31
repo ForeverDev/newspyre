@@ -168,9 +168,7 @@ ispunct:
 	ile
 	land
 	lor
-	ilsave	0x00
 	iret
-
 
 ; token format
 ;	0 -> type

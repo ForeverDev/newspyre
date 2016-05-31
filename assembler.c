@@ -285,7 +285,7 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 static void
 Assembler_die(Assembler* A, const char* format, ...) {
 	va_list list;
-	printf("\n*** Spyre assembler error (line %d) ***\n", A->tokens->line);
+	printf("\n*** Spyre assembler error (line %d) ***\n", A->tokens ? A->tokens->line : 0);
 	va_start(list, format);
 	vprintf(format, list);
 	va_end(list);
