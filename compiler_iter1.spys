@@ -24,6 +24,14 @@ let format_str	"%s"
 let newline		"\n"
 let tab			"\t"
 let nullchar	"\0"
+let kw_if		"if"
+let	kw_while	"while"
+let kw_for		"for"
+let kw_func		"func"
+let kw_do		"do"
+let kw_return	"return"
+let kw_continue	"continue"
+let kw_break	"break"
 
 jmp main
 
@@ -55,6 +63,36 @@ A01:
 	; return length
 	ilload	0x01
 	iret
+
+; args
+;	0 -> ptr to string
+;	1 -> ptr to string
+strcmp:
+	iarg	0
+	iarg	1
+ZZ00:
+	ilload	0x00
+	cder
+	ilload	0x01
+	cder
+	icmp
+	jnz		ZZ01
+	ipush	0
+	iret
+ZZ01:
+	ilload	0x00
+	cder
+	jnz		ZZ02
+	ipush	1
+	iret
+ZZ02:
+	ilload	0x00
+	icinc	1
+	ilsave	0x00
+	ilload	0x01
+	icinc	1
+	ilsave	0x01
+	jmp		ZZ00
 
 ; args
 ;	0 -> destination
@@ -138,33 +176,33 @@ ispunct:
 	;	(n >= '{' && n <= '~')
 	; );
 	iarg	0
-	ilload	'!'
+	ipush	'!'
 	ige
 	iarg	0
-	ilload	'/'
+	ipush	'/'
 	ile
 	land
 	iarg	0
-	ilload	':'
+	ipush	':'
 	ige
 	iarg	0
-	ilload '@'
-	ile
-	land
-	lor
-	iarg	0
-	ilload	'['
-	ige
-	iarg	0
-	ilload	'\''
+	ipush	'@'
 	ile
 	land
 	lor
 	iarg	0
-	ilload	'{'
+	ipush	'['
 	ige
 	iarg	0
-	ilload	'~'
+	ipush	96
+	ile
+	land
+	lor
+	iarg	0
+	ipush	'{'
+	ige
+	iarg	0
+	ipush	'~'
 	ile
 	land
 	lor
@@ -288,12 +326,15 @@ __Token_print:
 D00:
 	ilload	0x00
 	jz		D01
-
+	
+	let token_format_str "TOKEN (word '%s' | type %d)"
+	ilload	0x00
+	ider
 	ilload	0x00
 	ipush	1
 	padd
 	ider
-	ipush	format_str
+	ipush	token_format_str
 	ccall	println
 
 	ilload	0x00
@@ -383,6 +424,7 @@ B00_00:
 	ipush	0
 	isave
 B00:
+	dboff
 	; while (*s[0x02]);
 	ilload	0x02
 	cder
@@ -413,7 +455,6 @@ B00:
 	ilsave	0x05
 	jmp		Bcont
 B07:
-
 	; note store general purpose buffer at 0x50
 	
 	; if (s[0x04] == '\n') s[0x05]++; continue;
@@ -429,7 +470,6 @@ B07:
 
 	jmp		Bcont	
 B07_00:
-
 	; else if (isdigit(s[0x04])) goto B02;
 	ilload	0x04
 	call	isdigit, 1
@@ -580,19 +620,90 @@ B03_03:
 	ilload	0x51
 	ipush	0
 	isave
+
+	; s[0x52] = TYPE_IDENTIFIER
+	ipush	1
+	ilsave	0x52
 	
 	; __Token_append(&s[0x06], TYPE_IDENTIFIER (1), s[0x50]);
+	ilload	0x50
+	ipush	kw_if
+	call	strcmp, 2
+	jz		B03_04
+	ipush	44
+	ilsave	0x52
+	jmp		B03_done
+B03_04:
+	ilload	0x50
+	ipush	kw_while
+	call	strcmp, 2
+	jz		B03_05
+	ipush	45
+	ilsave	0x52
+	jmp		B03_done	
+B03_05:
+	ilload	0x50
+	ipush	kw_for
+	call	strcmp, 2
+	jz		B03_06
+	ipush	46
+	ilsave	0x52
+	jmp		B03_done	
+B03_06:
+	ilload	0x50
+	ipush	kw_func
+	call	strcmp, 2
+	jz		B03_07
+	ipush	47
+	ilsave	0x52
+	jmp		B03_done	
+B03_07:
+	ilload	0x50
+	ipush	kw_do
+	call	strcmp, 2
+	jz		B03_08
+	ipush	48
+	ilsave	0x52
+	jmp		B03_done	
+B03_08:
+	ilload	0x50
+	ipush	kw_return
+	call	strcmp, 2
+	jz		B03_09
+	ipush	49
+	ilsave	0x52
+	jmp		B03_done	
+B03_09:
+	ilload	0x50
+	ipush	kw_continue
+	call	strcmp, 2
+	jz		B03_10
+	ipush	50
+	ilsave	0x52
+	jmp		B03_done	
+B03_10:
+	ilload	0x50
+	ipush	kw_break
+	call	strcmp, 2
+	jz		B03_done
+	ipush	51
+	ilsave	0x52
+B03_done:
+
 	ilload	0x50	
-	ipush	1
+	ilload	0x52
 	ilea	0x06
 	call	__Token_append, 3
 
 	jmp		Bcont
 B04: ; ispunct
-	; s[0x50] = malloc(2);
+	; s[0x50] = malloc(3);
 	ipush	2
 	ccall	malloc
 	ilsave	0x50
+
+	ipush	0
+	ilsave	0x52
 	
 	; push token type onto the stack
 	ilload	0x04	
@@ -630,12 +741,378 @@ B04_01_00:
 	ipush	6
 	jmp		B04_done
 B04_02:
+	ilload	0x04
+	ipush	'\''
+	icmp
+	jz		B04_03
+	ipush	8
+	jmp		B04_done
+B04_03:
+	ilload	0x04
+	ipush	'('
+	icmp
+	jz		B04_04
+	ipush	9
+	jmp		B04_done
+B04_04:
+	ilload	0x04
+	ipush	')'
+	icmp
+	jz		B04_05
+	ipush	10
+	jmp		B04_done
+B04_05:
+	ilload	0x04
+	ipush	'*'
+	icmp	
+	jz		B04_06
+	ilload	0x02
+	icinc	1
+	cder
+	ipush	'='
+	icmp
+	jz		B04_05_00
+	ilload	0x02
+	icinc	1
+	ilsave	0x02
+	ipush	'='
+	ilsave	0x52
+	ipush	12 ; *=
+	jmp		B04_done
+B04_05_00:	
+	ipush	11 ; *
+	jmp		B04_done	
+B04_06:
+	ilload	0x04
+	ipush	'+'
+	icmp
+	jz		B04_07
+	ilload	0x02
+	icinc	1
+	cder
+	ipush	'+'
+	icmp
+	jz		B04_06_00
+	ilload	0x02
+	icinc	1
+	ilsave	0x02
+	ipush	'+'
+	ilsave	0x52
+	ipush	14 ; ++
+	jmp		B04_done
+B04_06_00:
+	ilload	0x02
+	icinc	1
+	cder
+	ipush	'='
+	icmp	
+	jz		B04_06_01
+	ilload	0x02
+	icinc	1
+	ilsave	0x02
+	ipush	'='
+	ilsave	0x52
+	ipush	15 ; +=
+	jmp		B04_done
+B04_06_01:
+	ipush	13 ; +
+	jmp		B04_done
+B04_07:	
+	ilload	0x04
+	ipush	','
+	icmp
+	jz		B04_08
+	ipush	16
+	jmp		B04_done
+B04_08:
+	ilload	0x04
+	ipush	'-'
+	icmp
+	jz		B04_09
+	ilload	0x02
+	icinc	1
+	cder
+	ipush	'-'
+	icmp
+	jz		B04_08_00
+	ilload	0x02
+	icinc	1
+	ilsave	0x02
+	ipush	'-'
+	ilsave	0x52
+	ipush	18 ; --
+	jmp		B04_done
+B04_08_00:
+	ilload	0x02
+	icinc	1
+	cder
+	ipush	'='
+	icmp
+	jz		B04_08_01
+	ilload	0x02
+	icinc	1
+	ilsave	0x02
+	ipush	'='
+	ilsave	0x52
+	ipush	19 ; -=
+	jmp		B04_done
+B04_08_01:
+	ilload	0x02
+	icinc	1
+	cder
+	ipush	'>'
+	icmp
+	jz		B04_08_02
+	ilload	0x02
+	icinc	1
+	ilsave	0x02
+	ipush	'>'
+	ilsave	0x52
+	ipush	20 ; ->
+	jmp		B04_done
+B04_08_02:
+	ipush	17
+	jmp		B04_done
+B04_09:
+	ilload	0x04
+	ipush	'.'
+	icmp
+	jz		B04_10
+	ipush	21 ; .
+	jmp		B04_done
+B04_10:
+	ilload	0x04
+	ipush	'/'
+	icmp
+	jz		B04_11
+	ilload	0x02
+	icinc	1
+	cder
+	ipush	'/'
+	icmp
+	jz		B04_10_00
+	ilload	0x02
+	icinc
+	ilsave	0x02
+	ipush	23
+	jmp		B04_done
+B04_10_00:
+	ipush	22
+	jmp		B04_done
+B04_11:
+	ilload	0x04
+	ipush	':'
+	icmp
+	jz		B04_12
+	ilload	0x02
+	icinc	1
+	cder
+	ipush	':'
+	icmp
+	jz		B04_11_00
+	ilload	0x02
+	icinc	1
+	ilsave	0x02
+	ipush	':'
+	ilsave	0x52
+	ipush	25
+	jmp		B04_done
+B04_11_00:
+	ipush	24
+	jmp		B04_done
+B04_12:
+	ilload	0x04
+	ipush	';'
+	icmp
+	jz		B04_13
+	ipush	26
+	jmp		B04_done
+B04_13:
+	ilload	0x04
+	ipush	'<'
+	icmp
+	jz		B04_14
+	ilload	0x02
+	icinc	1
+	cder
+	ipush	'='
+	icmp
+	jz		B04_13_00
+	ilload	0x02
+	icinc	1
+	ilsave	0x02
+	ipush	'='
+	ilsave	0x52
+	ipush	28
+	jmp		B04_done
+B04_13_00:
+	ilload	0x02
+	icinc	1
+	cder
+	ipush	'<'
+	icmp
+	jz		B04_13_01
+	ilload	0x02
+	icinc	1
+	ilsave	0x02
+	ipush	'<'
+	ilsave	0x52
+	ipush	29
+	jmp		B04_done
+B04_13_01:
+	ipush	27
+	jmp		B04_done
+B04_14:
+	ilload	0x04
+	ipush	'='
+	icmp
+	jz		B04_15
+	ilload	0x02
+	icinc	1
+	cder
+	ipush	'='
+	icmp
+	jz		B04_14_00
+	ilload	0x02
+	icinc	1
+	ilsave	0x02
+	ipush	'='
+	ilsave	0x52
+	ipush	31
+	jmp		B04_done
+B04_14_00:
+	ipush	30
+	jmp		B04_done
+B04_15:
+	ilload	0x04
+	ipush	'>'
+	icmp
+	jz		B04_16
+	ilload	0x02
+	icinc	1
+	cder
+	ipush	'='
+	icmp
+	jz		B04_15_00
+	ilload	0x02
+	icinc	1
+	ilsave	0x02
+	ipush	'='
+	ilsave	0x52
+	ipush	33
+	jmp		B04_done
+B04_15_00:
+	ilload	0x02
+	icinc	1
+	cder
+	ipush	'>'
+	icmp
+	jz		B04_15_01
+	ilload	0x02
+	icinc	1
+	ilsave	0x02
+	ipush	'>'
+	ilsave	0x52
+	ipush	34
+	jmp		B04_done
+B04_15_01:
+	ipush	32
+	jmp		B04_done
+B04_16:
+	ilload	0x04
+	ipush	'?'
+	icmp
+	jz		B04_17
+	ipush	35
+	jmp		B04_done
+B04_17:
+	ilload	0x04
+	ipush	'['
+	icmp
+	jz		B04_18
+	ipush	36
+	jmp		B04_done
+B04_18:
+	ilload	0x04
+	ipush	']'
+	icmp
+	jz		B04_19
+	ipush	37
+	jmp		B04_done
+B04_19:
+	ilload	0x04
+	ipush	'^'
+	icmp
+	jz		B04_20
+	ipush	38
+	jmp		B04_done
+B04_20:
+	ilload	0x04
+	ipush	'{'
+	icmp
+	jz		B04_21
+	ipush	39
+	jmp		B04_done
+B04_21:
+	ilload	0x04
+	ipush	'|'
+	icmp
+	jz		B04_22
+	ilload	0x02
+	icinc	1
+	cder
+	jz		B04_22_00
+	ilload	0x02
+	icinc	1
+	ilsave	0x02
+	ipush	'|'
+	ilsave	0x52
+	ipush	41
+	jmp		B04_done
+B04_22_00:
+	ipush	40
+	jmp		B04_done
+B04_22:
+	ilload	0x04
+	ipush	'}'
+	icmp
+	jz		B04_23
+	ipush	42
+	jmp		B04_done
+B04_23:
+	ilload	0x04
+	ipush	'~'
+	icmp
+	jz		B04_24
+	ipush	43
+	jmp		B04_done
+B04_24:
 	ipush	0
 B04_done:
 	ilsave	0x51
+
+	; s[0x50][0] = s[0x04]
+	ilload	0x50
+	ilload	0x04
+	isave
+
+	;s[0x50][1] = s[0x52]
+	ilload	0x50
+	icinc	1
+	ilload	0x52
+	isave
+
+	; s[0x50][2] = 0;
+	ilload	0x50
+	icinc	2
+	ipush	0
+	isave
+
+	ilload	0x50
 	ilload	0x51
-	ipush	format_int
-	ccall	println
+	ilea	0x06
+	call	__Token_append, 3
+
 	jmp		Bcont
 B05:
 B06:
@@ -648,4 +1125,11 @@ Bcont: ; continue label
 	ilsave	0x02	
 	jmp		B00
 B01:
+	ilload	0x06
+	call	__Token_print, 1
+
+
+	; ----------------------------------------- DONE LEXING, START PARSING --------------------------------------------
+
+
 	ipush	0

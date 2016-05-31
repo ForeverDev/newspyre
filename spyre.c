@@ -244,7 +244,7 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 		&&ilsave, &&iarg, &&iload, &&isave,
 		&&res, &&ilea, &&ider, &&icinc, &&cder,
 		&&lor, &&land, &&padd, &&psub, &&log,
-		&&vret
+		&&vret, &&dbon, &&dboff, &&dbds
 	};
 
 	/* main interpreter loop */
@@ -523,6 +523,19 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	S.ip = (uint8_t *)Spy_popPointer(&S);	
 	S.bp = (uint8_t *)Spy_popPointer(&S);
 	S.sp -= Spy_popInt(&S) * 8;
+	goto dispatch;
+
+	dbon:
+	option_flags |= (SPY_DEBUG | SPY_STEP);
+	goto dispatch;
+
+	dboff:
+	option_flags &= ~SPY_DEBUG;
+	option_flags &= ~SPY_STEP;
+	goto dispatch;
+
+	dbds:
+	Spy_dumpStack(&S);
 	goto dispatch;
 
 	done:

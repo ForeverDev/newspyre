@@ -30,11 +30,55 @@ args
 	0 -> head
 
 TOKEN TYPES
-0 -> null
-1 -> identifier
-2 -> string
-3 -> number
-4 -> not (!)
-5 -> mod (%)
-6 -> addr (&)
-7 -> logical and (&&)
+0	-> null
+1	-> identifier
+2	-> string
+3	-> number
+4	-> not !
+5	-> mod %
+6	-> addr &
+7	-> logical and &&
+8	-> single quote '
+9	-> open par (
+10	-> close par )
+11	-> asterisck *
+12	-> multiplyN *=
+13	-> plus +
+14	-> increment ++
+15	-> incrementN +=
+16	-> comma ,
+17	-> hyphon -
+18	-> decrement --
+19	-> decrementN -=
+20	-> arrow ->
+21	-> dot .
+22	-> slash /
+23	-> comment //
+24	-> colon :
+25	-> double colon ::
+26	-> semicolon ;
+27	-> lt <
+28	-> le <=
+29	-> shl <<
+30	-> assign =
+31	-> cmp ==
+32	-> gt >
+33	-> ge >=
+34	-> shr >>
+35	-> question ?
+36	-> opensq [
+37	-> closesq ]
+38	-> xor ^
+39	-> opencurl {
+40	-> or |
+41	-> lor ||
+42	-> closecurl }
+43	-> unary ~
+44	-> IF
+45	-> WHILE
+46	-> FOR
+47	-> FUNC
+48	-> DO
+49	-> RETURN
+50	-> CONTINUE
+51	-> BREAK

@@ -56,7 +56,10 @@ const AssemblerInstruction instructions[0xFF] = {
 	{"PADD",	0x30, {NO_OPERAND}},
 	{"PSUB",	0x31, {NO_OPERAND}},
 	{"LOG",		0x32, {INT32}},
-	{"VRET",	0x33, {NO_OPERAND}}
+	{"VRET",	0x33, {NO_OPERAND}},
+	{"DBON",	0x34, {NO_OPERAND}},
+	{"DBOFF",	0x35, {NO_OPERAND}},
+	{"DBDS",	0x36, {NO_OPERAND}}
 };
 
 void
@@ -102,8 +105,8 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	tmp_output.length = 0;
 	tmp_output.contents = NULL;
 
-	uint32_t index = 0;
-	int rom_size = 0;
+	uint64_t index = 0;
+	uint64_t rom_size = 0;
 	const AssemblerInstruction* ins;
 	Token* head;
 	
@@ -336,7 +339,7 @@ Assembler_appendConstant(Assembler* A, const char* identifier, uint32_t index) {
 /* 0 = not valid, 1 = valid */
 static const AssemblerInstruction*
 Assembler_validateInstruction(Assembler* A, const char* instruction) {
-	for (int i = 0; i <= 0x33; i++) {
+	for (int i = 0; i <= 0x36; i++) {
 		if (!strcmp_lower(instructions[i].name, instruction)) {
 			return &instructions[i];	
 		};

@@ -1,5 +1,3 @@
-main() && ! {
-	
-	x = 42;
-
+if (x > 10) {
+	println(some_variable);
 }

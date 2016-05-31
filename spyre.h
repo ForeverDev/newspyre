@@ -14,8 +14,8 @@
 
 /* constants */
 #define SIZE_MEMORY 0x100000
-#define SIZE_STACK	0x010000
-#define SIZE_ROM	0x010000
+#define SIZE_STACK	0x020000
+#define SIZE_ROM	0x020000
 #define SIZE_PAGE	8
 
 #define START_ROM	0
