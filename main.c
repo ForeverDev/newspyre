@@ -1,6 +1,6 @@
 #include <string.h>
-#include "interpreter/spyre.h"
-#include "assembler/assembler.h"
+#include "spyre.h"
+#include "assembler.h"
 
 int main(int argc, char** argv) {
 	
