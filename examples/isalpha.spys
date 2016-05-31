@@ -1,0 +1,23 @@
+jmp main
+
+isalpha:
+	iarg 0
+	ipush 'a'
+	ige
+	iarg 0
+	ipush 'z'
+	ile
+	land
+	iarg 0
+	ipush 'A'
+	ige
+	iarg 0
+	ipush 'Z'
+	ile
+	land
+	lor
+	iret
+
+main:
+	ipush '{'
+	call isalpha, 1
