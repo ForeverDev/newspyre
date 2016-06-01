@@ -1408,11 +1408,25 @@ Bcont: ; continue label
 	ilsave	0x02	
 	jmp		B00
 B01:
-	ilload	0x06
-	call	__Token_print, 1
-
 
 	; ----------------------------------------- DONE LEXING, START PARSING --------------------------------------------
+	
+	; save head token in 0x50
+	ilload	0x06
+	ilsave	0x50
 
+R00:
+	; while (s[0x06])
+	ilload	0x06
+	jz		R01
+	
+
+	ilload	0x06
+	ipush	2
+	padd
+	ider
+	ilsave	0x06
+	jmp		R00
+R01:	
 
 	ipush	0
