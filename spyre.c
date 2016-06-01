@@ -515,6 +515,11 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	goto dispatch;
 
 	log:
+	printf("get nened\n");
+	for (int i = -10; i < 10; i++) {
+		printf("%02x ", S.ip[i]);
+	}
+	printf("\n");
 	printf("%llu\n", Spy_readInt32(&S));
 	goto dispatch;
 

@@ -151,9 +151,9 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 					if (ins->operands[i] == NO_OPERAND) break;
 					A.tokens = A.tokens->next;
 					index += (
-						ins->operands[i] == INT64 ? sizeof(uint64_t) :
-						ins->operands[i] == INT32 ? sizeof(uint32_t) : 
-						ins->operands[i] == FLOAT64 ? sizeof(double) : 0
+						ins->operands[i] == INT64 ? 8 :
+						ins->operands[i] == INT32 ? 4 : 
+						ins->operands[i] == FLOAT64 ? 8 : 0
 					);
 				}
 			}
@@ -223,19 +223,19 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 						case INT64:
 						{
 							uint64_t n = A.tokens->word[1] == 'x' ? strtoll(&A.tokens->word[2], NULL, 16) : strtol(A.tokens->word, NULL, 10);
-							fwrite(&n, 1, sizeof(uint64_t), tmp_output.handle);
+							fwrite(&n, 1, 8, tmp_output.handle);
 							break;
 						}
 						case INT32:
 						{
 							uint64_t n = A.tokens->word[1] == 'x' ? strtoll(&A.tokens->word[2], NULL, 16) : strtol(A.tokens->word, NULL, 10);
-							fwrite(&n, 1, sizeof(uint32_t), tmp_output.handle);
+							fwrite(&n, 1, 4, tmp_output.handle);
 							break;
 						}
 						case FLOAT64:
 						{
 							double n = strtod(A.tokens->word, NULL);
-							fwrite(&n, 1, sizeof(double), tmp_output.handle);
+							fwrite(&n, 1, 8, tmp_output.handle);
 							break;
 						}
 						case NO_OPERAND:

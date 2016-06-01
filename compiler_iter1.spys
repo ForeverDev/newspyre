@@ -33,6 +33,63 @@ let kw_return	"return"
 let kw_continue	"continue"
 let kw_break	"break"
 
+; instruction names
+let ins_noop	"noop"
+let ins_ipush	"ipush"
+let ins_iadd	"iadd"
+let ins_isub	"isub"
+let ins_imul	"imul"
+let ins_idiv	"idiv"
+let ins_imod	"imod"
+let ins_shl		"shl"
+let ins_shr		"shr"
+let ins_and		"and"
+let ins_or		"or"
+let ins_xor		"xor"
+let ins_not		"not"
+let ins_neg		"neg"
+let ins_igt		"igt"
+let ins_ige		"ige"
+let ins_ilt		"ilt"
+let ins_ile		"ile"
+let ins_icmp	"icmp"
+let ins_jnz		"jnz"
+let ins_jz		"jz"
+let ins_jmp		"jmp"
+let ins_call	"call"
+let ins_iret	"iret"
+let ins_ccall	"ccall"
+let ins_fpush	"fpush"
+let ins_fadd	"fadd"
+let ins_fsub	"fsub"
+let ins_fmul	"fmul"
+let ins_fdiv	"fdiv"
+let ins_fgt		"fgt"
+let ins_fge		"fge"
+let ins_flt		"flt"
+let ins_fle		"fle"
+let ins_fcmp	"fcmp"
+let ins_fret	"fret"
+let ins_ilload	"ilload"
+let ins_ilsave	"ilsave"
+let ins_iarg	"iarg"
+let ins_iload	"iload"
+let ins_isave	"isave"
+let ins_res		"res"
+let ins_ilea	"ilea"
+let ins_ider	"ider"
+let ins_icinc	"icinc"
+let ins_cder	"cder"
+let ins_lor		"lor"
+let ins_land	"land"
+let ins_padd	"padd"
+let ins_psub	"psub"
+let ins_log		"log"
+let ins_vret	"vret"
+let ins_dbon	"dbon"
+let ins_dboff	"dboff"
+let ins_dbds	"dbds"
+
 jmp main
 
 ; args
@@ -153,6 +210,10 @@ isalpha:
 	ipush	'Z'
 	ile
 	land
+	lor
+	iarg	0
+	ipush	'_'
+	icmp	
 	lor
 	iret
 
@@ -351,7 +412,7 @@ D01:
 ;	0 -> nargs (can ignore)
 ;	1 -> input file name
 main:
-	res		0x100
+	res		0x200
 
 	; stack map
 	;	0x00 input file name
@@ -361,8 +422,231 @@ main:
 	;	0x04 current character
 	;	0x05 line count
 	;	0x06 token list
-
 	;	[0x50, 0x100) general purpose
+	;	[0x200, +) instruction table
+
+	; setup instruction table
+	ipush	ins_noop
+	ipush	0x00
+	ipush	0
+	ipush	0
+	ipush	ins_ipush
+	ipush	0x01
+	ipush	2
+	ipush	0
+	ipush	ins_iadd
+	ipush	0x02
+	ipush	0
+	ipush	0
+	ipush	ins_isub
+	ipush	0x03
+	ipush	0
+	ipush	0
+	ipush	ins_imul
+	ipush	0x04
+	ipush	0
+	ipush	0
+	ipush	ins_idiv
+	ipush	0x05
+	ipush	0
+	ipush	0
+	ipush	ins_imod
+	ipush	0x06
+	ipush	0
+	ipush	0
+	ipush	ins_shl
+	ipush	0x07
+	ipush	0
+	ipush	0
+	ipush	ins_shr
+	ipush	0x08
+	ipush	0
+	ipush	0
+	ipush	ins_and
+	ipush	0x09
+	ipush	0
+	ipush	0
+	ipush	ins_or
+	ipush	0x0A
+	ipush	0
+	ipush	0
+	ipush	ins_xor
+	ipush	0x0B
+	ipush	0
+	ipush	0
+	ipush	ins_not
+	ipush	0x0C
+	ipush	0
+	ipush	0
+	ipush	ins_neg
+	ipush	0x0D
+	ipush	0
+	ipush	0
+	ipush	ins_igt
+	ipush	0x0E
+	ipush	0
+	ipush	0
+	ipush	ins_ige
+	ipush	0x0F
+	ipush	0
+	ipush	0
+	ipush	ins_ilt
+	ipush	0x10
+	ipush	0
+	ipush	0
+	ipush	ins_ile
+	ipush	0x11
+	ipush	0
+	ipush	0
+	ipush	ins_icmp
+	ipush	0x12
+	ipush	0
+	ipush	0
+	ipush	ins_jnz
+	ipush	0x13
+	ipush	1
+	ipush	0
+	ipush	ins_jz
+	ipush	0x14
+	ipush	1
+	ipush	0
+	ipush	ins_jmp
+	ipush	0x15
+	ipush	1
+	ipush	0
+	ipush	ins_call
+	ipush	0x16
+	ipush	1
+	ipush	1
+	ipush	ins_iret
+	ipush	0x17
+	ipush	0
+	ipush	0
+	ipush	ins_ccall
+	ipush	0x18
+	ipush	1
+	ipush	0
+	ipush	ins_fpush
+	ipush	0x19
+	ipush	3
+	ipush	0
+	ipush	ins_fadd
+	ipush	0x1A
+	ipush	0
+	ipush	0
+	ipush	ins_fsub
+	ipush	0x1B
+	ipush	0
+	ipush	0
+	ipush	ins_fmul
+	ipush	0x1C
+	ipush	0
+	ipush	0
+	ipush	ins_fdiv
+	ipush	0x1D
+	ipush	0
+	ipush	0
+	ipush	ins_fgt
+	ipush	0x1E
+	ipush	0
+	ipush	0
+	ipush	ins_fge
+	ipush	0x1F
+	ipush	0
+	ipush	0
+	ipush	ins_flt
+	ipush	0x20
+	ipush	0
+	ipush	0
+	ipush	ins_fle
+	ipush	0x21
+	ipush	0
+	ipush	0
+	ipush	ins_fcmp
+	ipush	0x22
+	ipush	0
+	ipush	0
+	ipush	ins_fret
+	ipush	0x23
+	ipush	0
+	ipush	0
+	ipush	ins_ilload
+	ipush	0x24
+	ipush	1
+	ipush	0
+	ipush	ins_ilsave
+	ipush	0x25
+	ipush	1
+	ipush	0
+	ipush	ins_iarg
+	ipush	0x26
+	ipush	1
+	ipush	0
+	ipush	ins_iload
+	ipush	0x27
+	ipush	0
+	ipush	0
+	ipush	ins_isave
+	ipush	0x28
+	ipush	0
+	ipush	0
+	ipush	ins_res
+	ipush	0x29
+	ipush	1
+	ipush	0
+	ipush	ins_ilea
+	ipush	0x2A
+	ipush	1
+	ipush	0
+	ipush	ins_ider
+	ipush	0x2B
+	ipush	0
+	ipush	0
+	ipush	ins_icinc
+	ipush	0x2C
+	ipush	2
+	ipush	0
+	ipush	ins_cder
+	ipush	0x2D
+	ipush	0
+	ipush	0
+	ipush	ins_lor
+	ipush	0x2E
+	ipush	0
+	ipush	0
+	ipush	ins_land
+	ipush	0x2F
+	ipush	0
+	ipush	0
+	ipush	ins_padd
+	ipush	0x30
+	ipush	0
+	ipush	0
+	ipush	ins_psub
+	ipush	0x31
+	ipush	0
+	ipush	0
+	ipush	ins_log
+	ipush	0x32
+	ipush	1
+	ipush	0
+	ipush	ins_vret
+	ipush	0x33
+	ipush	0
+	ipush	0
+	ipush	ins_dbon
+	ipush	0x34
+	ipush	0
+	ipush	0
+	ipush	ins_dboff
+	ipush	0x35
+	ipush	0
+	ipush	0
+	ipush	ins_dbds
+	ipush	0x36
+	ipush	0
+	ipush	0
+
 
 	; @ s[0x05] = 0
 	ipush	0
@@ -424,7 +708,6 @@ B00_00:
 	ipush	0
 	isave
 B00:
-	dboff
 	; while (*s[0x02]);
 	ilload	0x02
 	cder

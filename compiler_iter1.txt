@@ -8,6 +8,17 @@ main stack
 0x06			-> token list
 [0x50, 0x100)	-> general purpose
 ---------------------------------------
+INSTRUCTION MAP
+0 -> name
+1 -> opcode
+2 -> operand1
+3 -> operand2
+
+OPERAND TYPES
+0 -> NO_OPERAND
+1 -> INT32
+2 -> INT64
+3 -> FLOAT64
 
 TOKEN MAP
 0 -> type
