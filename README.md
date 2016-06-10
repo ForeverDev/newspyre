@@ -2,12 +2,11 @@
 David Wilson
 
 "Spyre" is a programming language that began development in December, 2015.  This is
-the sixth (or so) iteration of Spyre.  The previous iterations can be found at:
+the fifth (or so) iteration of Spyre.  The previous iterations can be found at:
 + https://github.com/ForeverDev/spyre
 + https://github.com/ForeverDev/spyre2
 + https://github.com/ForeverDev/spyre3
 + https://github.com/ForeverDev/spyre4
-+ https://github.com/ForeverDev/spyre5
 
 Each version of Spyre is increasingly better than the last (as my knowledge about
 programming languages has grown).  
