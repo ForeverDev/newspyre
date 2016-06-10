@@ -59,7 +59,12 @@ const AssemblerInstruction instructions[0xFF] = {
 	{"VRET",	0x33, {NO_OPERAND}},
 	{"DBON",	0x34, {NO_OPERAND}},
 	{"DBOFF",	0x35, {NO_OPERAND}},
-	{"DBDS",	0x36, {NO_OPERAND}}
+	{"DBDS",	0x36, {NO_OPERAND}},
+	{"CJNZ",	0x37, {NO_OPERAND}},
+	{"CJZ",		0x38, {NO_OPERAND}},
+	{"CJMP",	0x39, {NO_OPERAND}},
+	{"ILNSAVE",	0x3A, {INT32, INT32}},
+	{"ILNLOAD",	0x3B, {INT32, INT32}},
 };
 
 void
@@ -339,7 +344,7 @@ Assembler_appendConstant(Assembler* A, const char* identifier, uint32_t index) {
 /* 0 = not valid, 1 = valid */
 static const AssemblerInstruction*
 Assembler_validateInstruction(Assembler* A, const char* instruction) {
-	for (int i = 0; i <= 0x36; i++) {
+	for (int i = 0; i <= 0x3B; i++) {
 		if (!strcmp_lower(instructions[i].name, instruction)) {
 			return &instructions[i];	
 		};

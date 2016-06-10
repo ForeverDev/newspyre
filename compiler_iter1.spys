@@ -179,6 +179,10 @@ Z00:
 
 	jmp		Z00
 Z01:
+	ilload	0x01
+	ipush	0
+	isave
+
 	vret
 
 ; args
@@ -268,6 +272,39 @@ ispunct:
 	land
 	lor
 	iret
+
+; "hacky" function that returns the tail of a linked list
+; args
+;	0 -> linked list
+;	1 -> index of next
+find_tail:
+	res		1
+	iarg	0
+	ilsave	0x00
+
+	ilload	0x00
+	jnz		F00
+	ipush	0
+	iret
+F00:
+	ilload	0x00
+	iarg	0
+	padd
+	ider
+	jz		F01
+
+	ilload	0x00
+	iarg	0
+	padd
+	ider
+	ilsave	0x00
+
+	jmp		F00
+F01:
+	ilload	0x00
+	iret
+	
+	
 
 ; token format
 ;	0 -> type
@@ -411,8 +448,8 @@ D01:
 ; args:
 ;	0 -> nargs (can ignore)
 ;	1 -> input file name
-main:
-	res		0x200
+generate_tokens:
+	res		0x350
 
 	; stack map
 	;	0x00 input file name
@@ -423,230 +460,7 @@ main:
 	;	0x05 line count
 	;	0x06 token list
 	;	[0x50, 0x100) general purpose
-	;	[0x200, +) instruction table
-
-	; setup instruction table
-	ipush	ins_noop
-	ipush	0x00
-	ipush	0
-	ipush	0
-	ipush	ins_ipush
-	ipush	0x01
-	ipush	2
-	ipush	0
-	ipush	ins_iadd
-	ipush	0x02
-	ipush	0
-	ipush	0
-	ipush	ins_isub
-	ipush	0x03
-	ipush	0
-	ipush	0
-	ipush	ins_imul
-	ipush	0x04
-	ipush	0
-	ipush	0
-	ipush	ins_idiv
-	ipush	0x05
-	ipush	0
-	ipush	0
-	ipush	ins_imod
-	ipush	0x06
-	ipush	0
-	ipush	0
-	ipush	ins_shl
-	ipush	0x07
-	ipush	0
-	ipush	0
-	ipush	ins_shr
-	ipush	0x08
-	ipush	0
-	ipush	0
-	ipush	ins_and
-	ipush	0x09
-	ipush	0
-	ipush	0
-	ipush	ins_or
-	ipush	0x0A
-	ipush	0
-	ipush	0
-	ipush	ins_xor
-	ipush	0x0B
-	ipush	0
-	ipush	0
-	ipush	ins_not
-	ipush	0x0C
-	ipush	0
-	ipush	0
-	ipush	ins_neg
-	ipush	0x0D
-	ipush	0
-	ipush	0
-	ipush	ins_igt
-	ipush	0x0E
-	ipush	0
-	ipush	0
-	ipush	ins_ige
-	ipush	0x0F
-	ipush	0
-	ipush	0
-	ipush	ins_ilt
-	ipush	0x10
-	ipush	0
-	ipush	0
-	ipush	ins_ile
-	ipush	0x11
-	ipush	0
-	ipush	0
-	ipush	ins_icmp
-	ipush	0x12
-	ipush	0
-	ipush	0
-	ipush	ins_jnz
-	ipush	0x13
-	ipush	1
-	ipush	0
-	ipush	ins_jz
-	ipush	0x14
-	ipush	1
-	ipush	0
-	ipush	ins_jmp
-	ipush	0x15
-	ipush	1
-	ipush	0
-	ipush	ins_call
-	ipush	0x16
-	ipush	1
-	ipush	1
-	ipush	ins_iret
-	ipush	0x17
-	ipush	0
-	ipush	0
-	ipush	ins_ccall
-	ipush	0x18
-	ipush	1
-	ipush	0
-	ipush	ins_fpush
-	ipush	0x19
-	ipush	3
-	ipush	0
-	ipush	ins_fadd
-	ipush	0x1A
-	ipush	0
-	ipush	0
-	ipush	ins_fsub
-	ipush	0x1B
-	ipush	0
-	ipush	0
-	ipush	ins_fmul
-	ipush	0x1C
-	ipush	0
-	ipush	0
-	ipush	ins_fdiv
-	ipush	0x1D
-	ipush	0
-	ipush	0
-	ipush	ins_fgt
-	ipush	0x1E
-	ipush	0
-	ipush	0
-	ipush	ins_fge
-	ipush	0x1F
-	ipush	0
-	ipush	0
-	ipush	ins_flt
-	ipush	0x20
-	ipush	0
-	ipush	0
-	ipush	ins_fle
-	ipush	0x21
-	ipush	0
-	ipush	0
-	ipush	ins_fcmp
-	ipush	0x22
-	ipush	0
-	ipush	0
-	ipush	ins_fret
-	ipush	0x23
-	ipush	0
-	ipush	0
-	ipush	ins_ilload
-	ipush	0x24
-	ipush	1
-	ipush	0
-	ipush	ins_ilsave
-	ipush	0x25
-	ipush	1
-	ipush	0
-	ipush	ins_iarg
-	ipush	0x26
-	ipush	1
-	ipush	0
-	ipush	ins_iload
-	ipush	0x27
-	ipush	0
-	ipush	0
-	ipush	ins_isave
-	ipush	0x28
-	ipush	0
-	ipush	0
-	ipush	ins_res
-	ipush	0x29
-	ipush	1
-	ipush	0
-	ipush	ins_ilea
-	ipush	0x2A
-	ipush	1
-	ipush	0
-	ipush	ins_ider
-	ipush	0x2B
-	ipush	0
-	ipush	0
-	ipush	ins_icinc
-	ipush	0x2C
-	ipush	2
-	ipush	0
-	ipush	ins_cder
-	ipush	0x2D
-	ipush	0
-	ipush	0
-	ipush	ins_lor
-	ipush	0x2E
-	ipush	0
-	ipush	0
-	ipush	ins_land
-	ipush	0x2F
-	ipush	0
-	ipush	0
-	ipush	ins_padd
-	ipush	0x30
-	ipush	0
-	ipush	0
-	ipush	ins_psub
-	ipush	0x31
-	ipush	0
-	ipush	0
-	ipush	ins_log
-	ipush	0x32
-	ipush	1
-	ipush	0
-	ipush	ins_vret
-	ipush	0x33
-	ipush	0
-	ipush	0
-	ipush	ins_dbon
-	ipush	0x34
-	ipush	0
-	ipush	0
-	ipush	ins_dboff
-	ipush	0x35
-	ipush	0
-	ipush	0
-	ipush	ins_dbds
-	ipush	0x36
-	ipush	0
-	ipush	0
-
+	;	[0x100, 0x180) jump table
 
 	; @ s[0x05] = 0
 	ipush	0
@@ -1408,25 +1222,244 @@ Bcont: ; continue label
 	ilsave	0x02	
 	jmp		B00
 B01:
+	ilload	0x06
+	iret
 
-	; ----------------------------------------- DONE LEXING, START PARSING --------------------------------------------
+; ----------------------------------------- DONE LEXING, START PARSING --------------------------------------------
+
+; args
+;	0 -> type
+__Chunk_new:
+	res		1
+	ipush	32
+	ccall	malloc
+	ilsave	0x00
 	
-	; save head token in 0x50
-	ilload	0x06
-	ilsave	0x50
+	ilload	0x00
+	iarg	0
+	isave
 
-R00:
-	; while (s[0x06])
-	ilload	0x06
-	jz		R01
+	ilload	0x00
+	ipush	1
+	padd
+	ipush	0
+	isave
+
+	ilload	0x00
+	ipush	2
+	padd
+	ipush	0
+	isave
+
+	ilload	0x00
+	ipush	3
+	padd
+	ipush	0
+	isave
+
+	ilload	0x00
+	iret
+
+; args
+;	0 -> chunk
+;	1 -> token
+__Chunk_appendSection:
+	res		4
 	
+	; s[0x00] chunk
+	iarg	0
+	ilsave	0x00
 
-	ilload	0x06
+	; s[0x01] token
+	iarg	0
+	ilsave	0x01
+	
+	; s[0x02] new section
+	ipush	2
+	ccall	malloc
+	ilsave	0x02
+
+	; s[0x02][0] is going to be a token pointer... allocate a new token
+
+	; prepare memory address
+	ilload	0x02
+	; __Token_new(s[0x01]->type, s[0x01]->word);
+	ilload	0x01
+	ipush	1
+	padd
+	ider
+	ilload	0x01
+	ider
+	call	__Token_new, 2
+	; s[0x02][0] = __Token_new return value
+	isave
+
+	; s[0x02]->next = NULL
+	ilload	0x02
+	ipush	1
+	padd
+	ipush	0
+	isave
+
+	ilload	0x00
+	ipush	1
+	padd
+	ider
+	jz		V00
+	; SECTION DOES EXIST, APPEND
+	
+	; s[0x03] = tail of sections
+	ipush	1
+	ilload	0x00
+	ipush	1
+	padd
+	ider
+	call	find_tail, 2
+	ilsave	0x03
+
+	; s[0x03]->next = s[0x02]
+	ilload	0x03
+	ipush	1
+	padd
+	ipush	0x02
+	isave
+
+	jmp		V01
+V00:
+	; SECTION DOES NOT EXIST, SET
+	ilload	0x00
+	ipush	1
+	padd
+	ilload	0x02
+	isave
+V01:
+
+
+	vret
+
+; args
+;	0 -> chunk
+__Chunk_print:
+	res		1
+	iarg	0
+	ilsave	0x00
+
+	ilload	0x00
+	jz		Pdone
+
+P00:
+	ilload	0x00
+	jz		P01
+
+	ilload	0x00
 	ipush	2
 	padd
 	ider
-	ilsave	0x06
-	jmp		R00
-R01:	
+	ilsave	0x01
 
-	ipush	0
+	jmp		P00
+P01:
+
+Pdone:
+	vret
+	
+
+; args
+;	0 -> tokens
+generate_ast:
+
+	res		0x400
+		
+	; save head token in 0x00 and 0x01
+	iarg	0
+	iarg	0
+	ilsave	0x00
+	ilsave	0x01
+
+	ilload	0x00
+	call	__Token_print, 1
+
+	; jmp table for later
+	ipush	Rif
+	ipush	Rwhile
+	ipush	Rfor
+	ipush	Rfunc
+	ipush	Rdo
+	ipush	Rreturn
+	ipush	Rcontinue
+	ipush	Rbreak
+	ilnsave	0x200, 8
+
+R00:
+	; while (s[0x00])
+	ilload	0x00
+	jz		Rdone
+	
+	; switch (s[0x06]->type);
+	; save s[0x06]->type in 0x51
+	ilload	0x00
+	ider
+	ilsave	0x51
+
+	; only switch if token->type >= 44
+	ilload	0x51
+	ipush	44
+	ige
+	jnz		R01
+	
+	jmp		Rloop
+R01:
+	
+	; jump based on jump table located addr 0x200	
+	ilea	0x200
+	ilload	0x51
+	ipush	44
+	isub
+	padd
+	ider
+	cjmp
+
+Rif:	
+	log		1
+	jmp		Rdonesw
+Rwhile:
+	log		2
+	jmp		Rdonesw
+Rfor:
+	log		3
+	jmp		Rdonesw
+Rfunc:
+	log		4
+	jmp		Rdonesw
+Rdo:
+	log		5
+	jmp		Rdonesw
+Rreturn:
+	log		6
+	jmp		Rdonesw
+Rcontinue:
+	log		7
+	jmp		Rdonesw
+Rbreak:
+	log		8
+	jmp		Rdonesw
+Rdonesw:
+	jmp		Rloop
+
+Rloop:	
+	ilload	0x00
+	ipush	2
+	padd
+	ider
+	ilsave	0x00
+	jmp		R00
+Rdone:
+
+
+	vret
+
+main:
+	iarg	1
+	iarg	0
+	call	generate_tokens, 2
+	call	generate_ast, 1

@@ -217,14 +217,14 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	Spy_pushInt(&S, argc);
 
 	/* push junk for nargs, ip, and bp onto the stack to maintain alignment for arg instruction */
-	Spy_pushInt(&S, 0x4242424242424242);
-	Spy_pushInt(&S, 0xBAADBEEFDEADC0DE);
-	Spy_pushInt(&S, 0x0DAF0DDAF0DDAF0D);
+	Spy_pushInt(&S, 0x7369DB6469766164);
+	Spy_pushInt(&S, 0xDB6C6F6F63DB61DB);
+	Spy_pushInt(&S, 0x212121212164696B);
 	/* assign BP to SP to simulate a function call */
 	S.bp = S.sp;
 
 	/* general purpose vars for interpretation */
-	int64_t a;
+	int64_t a, c;
 	double b;
 
 	/* IP saver */
@@ -244,7 +244,8 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 		&&ilsave, &&iarg, &&iload, &&isave,
 		&&res, &&ilea, &&ider, &&icinc, &&cder,
 		&&lor, &&land, &&padd, &&psub, &&log,
-		&&vret, &&dbon, &&dboff, &&dbds
+		&&vret, &&dbon, &&dboff, &&dbds, &&cjnz,
+		&&cjz, &&cjmp, &&ilnsave, &&ilnload
 	};
 
 	/* main interpreter loop */
@@ -515,11 +516,6 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	goto dispatch;
 
 	log:
-	printf("get nened\n");
-	for (int i = -10; i < 10; i++) {
-		printf("%02x ", S.ip[i]);
-	}
-	printf("\n");
 	printf("%llu\n", Spy_readInt32(&S));
 	goto dispatch;
 
@@ -542,6 +538,40 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	dbds:
 	Spy_dumpStack(&S);
 	goto dispatch;
+
+	cjnz:
+	a = Spy_popInt(&S); /* location */
+	c = Spy_popInt(&S); /* condition */
+	if (c) {
+		S.ip = (uint8_t *)&S.bytecode[a];
+	}
+	goto dispatch;
+
+	cjz:
+	a = Spy_popInt(&S); /* location */
+	c = Spy_popInt(&S); /* condition */
+	if (!c) {
+		S.ip = (uint8_t *)&S.bytecode[a];
+	}
+	goto dispatch;
+
+	cjmp:
+	S.ip = (uint8_t *)&S.bytecode[Spy_popInt(&S)];
+	goto dispatch;
+
+	ilnsave:
+	{
+		uint32_t addr = Spy_readInt32(&S);
+		uint32_t numsave = Spy_readInt32(&S);
+		uint64_t* pops = (uint64_t *)malloc(numsave * 8);
+		for (int i = numsave - 1; i >= 0; i--) {
+			pops[i] = Spy_popInt(&S);
+		}
+		memcpy(&S.bp[addr*8 + 8], pops, numsave * 8);
+	}
+	goto dispatch;
+
+	ilnload:
 
 	done:
 	if (option_flags & SPY_DEBUG) {
