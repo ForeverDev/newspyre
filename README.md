@@ -88,3 +88,7 @@ CJZ			| 38		|
 CJMP		| 39		|
 ILNSAVE		| 3A		| INT32 start, INT32 num
 ILNLOAD		| 3B		| INT32 start, INT32 num
+
+NOTE:	many of the instructions specific to ints/floats can be generalized
+		(e.g. `ICMP`, `FCMP` can be generalized to `CMP`).  This will be
+		done in the near future.
