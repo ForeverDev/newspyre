@@ -29,29 +29,29 @@ in the future when I don't need to add any more instructions)
 
 MNEMONIC	| OPCODE	| OPERANDS  
 ----------- | --------- | --------  
-NOOP		| 0x00		|		    
-IPUSH		| 0x01		| INT64	constant
-IADD		| 0x02		|
-ISUB		| 0x03		|
-IMUL		| 0x04		|
-IDIV		| 0x05		|
-IMOD		| 0x06		|
-SHL			| 0x07		|
-SHR			| 0x08		|
-AND			| 0x09		|
-OR			| 0x0A		|
-XOR			| 0x0B		|
-NOT			| 0x0C		|
-NEG			| 0x0D		|
-IGT			| 0x0E		|
-IGE			| 0x0F		|
-ILT			| 0x10		|
-ILE			| 0x11		|
-ICMP		| 0x12		|
-JNZ			| 0x13		| INT32 addr
-JZ			| 0x14		| INT32 addr
-JMP			| 0x15		| INT32 addr
-CALL		| 0x16		| INT32 addr, INT32 nargs
-IRET		| 0x17		| 
-CCALL		| 0x18		| INT32 ptrToCFunctionName
+NOOP		| 00		|		    
+IPUSH		| 01		| INT64	constant
+IADD		| 02		|
+ISUB		| 03		|
+IMUL		| 04		|
+IDIV		| 05		|
+IMOD		| 06		|
+SHL			| 07		|
+SHR			| 08		|
+AND			| 09		|
+OR			| 0A		|
+XOR			| 0B		|
+NOT			| 0C		|
+NEG			| 0D		|
+IGT			| 0E		|
+IGE			| 0F		|
+ILT			| 10		|
+ILE			| 11		|
+ICMP		| 12		|
+JNZ			| 13		| INT32 addr
+JZ			| 14		| INT32 addr
+JMP			| 15		| INT32 addr
+CALL		| 16		| INT32 addr, INT32 nargs
+IRET		| 17		| 
+CCALL		| 18		| INT32 ptrToCFunctionName
 < TODO add the rest (I'm lazy) >
