@@ -53,4 +53,38 @@ JMP			| 15		| INT32 addr
 CALL		| 16		| INT32 addr, INT32 nargs
 IRET		| 17		| 
 CCALL		| 18		| INT32 ptrToCFunctionName
-< TODO add the rest (I'm lazy) >
+FPUSH		| 19		| FLOAT64 constant
+FADD		| 1A		|
+FSUB		| 1B		|
+FMUL		| 1C		|
+FDIV		| 1D		|
+FGT			| 1E		|
+FGE			| 1F		|
+FLT			| 20		|
+FLE			| 21		|
+FCMP		| 22		|
+FRET		| 23		|
+ILLOAD		| 24		| INT32 varOffsetAddress
+ILSAVE		| 25		| INT32 varOffsetAddress
+IARG		| 26		| INT32 argumentNumber
+ILOAD		| 27		|
+ISAVE		| 28		|
+RES			| 29		| INT32 wordsToReserve
+LEA			| 2A		| INT32 varOffsetAddress
+IDER		| 2B		| 
+ICINC		| 2C		| INT64 increment
+CDER		| 2D		|
+LOR			| 2E		|
+LAND		| 2F		|
+PADD		| 30		|
+PSUB		| 31		|
+LOG			| 32		| INT32 constant
+VRET		| 33		|
+DBON		| 34		|
+DBOFF		| 35		|
+DBDS		| 36		|
+CJNZ		| 37		|
+CJZ			| 38		|
+CJMP		| 39		|
+ILNSAVE		| 3A		| INT32 start, INT32 num
+ILNLOAD		| 3B		| INT32 start, INT32 num
