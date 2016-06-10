@@ -28,7 +28,7 @@ instruction set is pretty messy and out of order, I plan on improving this
 in the future when I don't need to add any more instructions)
 
 MNEMONIC	| OPCODE	| OPERANDS  
------------ | --------- | --------  
+----------- |:---------:| --------  
 NOOP		| 00		|		    
 IPUSH		| 01		| INT64	constant
 IADD		| 02		|
