@@ -12,7 +12,7 @@ Each version of Spyre is increasingly better than the last (as my knowledge abou
 programming languages has grown).  
 
 Spyre is a statically typed, interpreted programming language.  There are two
-data types in Spyre: `int` and `float`.  Both have 64 bit storage.  `int` is
+numerical data types in Spyre: `int` and `float`.  Both have 64 bit storage.  `int` is
 automatically signed (although I may add unsigned support in the future?).
 
 Spyre's compiler is bootstrapping.  That is, the Spyre compiler is written 
