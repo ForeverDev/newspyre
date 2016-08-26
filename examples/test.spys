@@ -1,15 +1,10 @@
 let println "println"
 let malloc "malloc"
-let format "%d\n"
+let format "%c\n"
 
 jmp main
 
-
 main:
-	ipush	42
-	ilea	0
-	ider
-	ipush	format
-	ccall	println
-
+	ipush 0
+	iret
 

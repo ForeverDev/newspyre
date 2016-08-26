@@ -113,9 +113,9 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	uint64_t index = 0;
 	uint64_t rom_size = 0;
 	const AssemblerInstruction* ins;
-	Token* head;
+	AssemblerToken* head;
 	
-	if (!(A.tokens = head = Lexer_convertToTokens(input.contents))) goto done;
+	if (!(A.tokens = head = Lexer_convertToAssemblerTokens(input.contents))) goto done;
 
 	/* pass one, find all labels */
 	while (A.tokens && A.tokens->next) {
@@ -125,7 +125,7 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 					Assembler_appendLabel(&A, A.tokens->word, index);
 				}
 				if (A.tokens->prev) {
-					Token* save = A.tokens;
+					AssemblerToken* save = A.tokens;
 					A.tokens->prev->next = A.tokens->next->next;
 					if (A.tokens->next->next) {
 						A.tokens->next->next->prev = A.tokens->prev;
@@ -135,7 +135,7 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 					free(save);
 					continue;
 				} else if (A.tokens->next->next) {
-					Token* save = A.tokens;
+					AssemblerToken* save = A.tokens;
 					A.tokens->next->next->prev = NULL;
 					A.tokens = A.tokens->next->next;
 					free(save->next);

@@ -1,6 +1,7 @@
 #include <string.h>
 #include "spyre.h"
 #include "assembler.h"
+#include "lex.h"
 
 int main(int argc, char** argv) {
 	
@@ -8,11 +9,13 @@ int main(int argc, char** argv) {
 
 	char* args[] = {"examples/test.spy"};
 
-	if (!strncmp(argv[1], "c", 1)) {
+	if (!strncmp(argv[1], "a", 1)) {
 		Assembler_generateBytecodeFile(argv[2]);
 	} else if (!strncmp(argv[1], "r", 1)) {
 		//Spy_execute(argv[2], SPY_NOFLAG | SPY_STEP | SPY_DEBUG, 1, args);
 		Spy_execute(argv[2], SPY_NOFLAG, 1, args);
+	} else if (!strncmp(argv[1], "c", 1)) {
+		generate_tokens(argv[2]);	
 	}
 
 	return 0;

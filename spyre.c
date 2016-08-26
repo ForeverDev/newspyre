@@ -213,10 +213,10 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 		strcpy((char *)chunk->absolute_address, argv[i]);
 	}
 
-	/* push nargs */
+	/* push ng */
 	Spy_pushInt(&S, argc);
 
-	/* push junk for nargs, ip, and bp onto the stack to maintain alignment for arg instruction */
+	/* push junk for ng, ip, and bp onto the stack to maintain alignment for arg instruction */
 	Spy_pushInt(&S, 0x7369DB6469766164);
 	Spy_pushInt(&S, 0xDB6C6F6F63DB61DB);
 	Spy_pushInt(&S, 0x212121212164696B);

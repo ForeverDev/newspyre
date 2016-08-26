@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include "lexer.h"
+#include "assembler_lex.h"
 
 #define TMPFILE_NAME ".SPYRE_TEMP_FILE"
 
@@ -22,7 +22,7 @@ enum AssemblerOperand {
 };
 
 struct Assembler {
-	Token*				tokens;
+	AssemblerToken*		tokens;
 	AssemblerLabel*		labels;
 	AssemblerConstant*	constants;
 };
