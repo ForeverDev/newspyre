@@ -2,6 +2,7 @@
 #include "spyre.h"
 #include "assembler.h"
 #include "lex.h"
+#include "parse.h"
 
 int main(int argc, char** argv) {
 	
@@ -15,7 +16,8 @@ int main(int argc, char** argv) {
 		//Spy_execute(argv[2], SPY_NOFLAG | SPY_STEP | SPY_DEBUG, 1, args);
 		Spy_execute(argv[2], SPY_NOFLAG, 1, args);
 	} else if (!strncmp(argv[1], "c", 1)) {
-		generate_tokens(argv[2]);	
+		Token* tokens = generate_tokens(argv[2]);	
+		SyntaxTree* tree = generate_tree(tokens);
 	}
 
 	return 0;

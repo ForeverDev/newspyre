@@ -1,11 +1,8 @@
-testing
-if 
-while
-"hello"
+if (x > 10) {
+	if (y < 100) {
 
->>
-<=
->>=
-++
-+= 
-+
+	}
+	if (z < y) {
+
+	}
+}

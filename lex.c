@@ -4,14 +4,24 @@
 #include <string.h>
 #include "lex.h"
 
-void append_token(Token*, char*, unsigned int, unsigned int);
-void print_tokens(Token*);
+void
+print_tokens(Token* head) {
+	while (head) {
+		printf("(%d : %s)\n", head->type, head->word);
+		head = head->next;
+	}
+}
+
+Token*
+blank_token() {
+	return (Token *)calloc(1, sizeof(Token));
+}
 
 void
 append_token(Token* head, char* word, unsigned int line, unsigned int type) {
 	char* word_copy = malloc(strlen(word) + 1);
 	strcpy(word_copy, word);
-	if (head->type == -1) {
+	if (head->type == 0) {
 		head->word = word_copy;
 		head->line = line;
 		head->type = type;
@@ -29,20 +39,12 @@ append_token(Token* head, char* word, unsigned int line, unsigned int type) {
 	}
 }
 
-void
-print_tokens(Token* head) {
-	while (head) {
-		printf("(%d : %s)\n", head->type, head->word);
-		head = head->next;
-	}
-}
-
 Token*
 generate_tokens(const char* filename) {
-	
+
 	Token* tokens = malloc(sizeof(Token));	
 	tokens->next = NULL;
-	tokens->type = -1; /* empty */
+	tokens->type = 0; /* empty */
 	tokens->line = 0;
 	tokens->word = NULL;
 
@@ -85,15 +87,19 @@ generate_tokens(const char* filename) {
 					len++;
 				}
 			} else {
-				while (*contents && (isalnum(*contents) || *contents == '_')) {
+				while (*contents && (isalnum(*contents) || *contents == '_') && *contents != ' ') {
 					contents++;
 					len++;
 				}
 			}
 			buf = malloc(len + 1);
-			memcpy(buf, start, len);
+			strncpy(buf, start, len);
 			buf[len] = 0;
 			len = 0;
+			/* remove whitespace from buffer, FIXME */
+			for (int i = 0; i < strlen(buf); i++) {
+				if (buf[i] == 32) buf[i] = 0;
+			}
 			append_token(tokens, buf, line, (
 				is_string ? 14 : 
 				!strcmp(buf, "if") ? 1 : 
@@ -108,7 +114,7 @@ generate_tokens(const char* filename) {
 				!strcmp(buf, "break") ? 10 : 
 				!strcmp(buf, "for") ? 11 : 12
 			));
-			contents++;
+			free(buf);
 		} else if (isdigit(*contents)) {
 			start = contents;
 			/* TODO register all number formats and convert to base 10 */
@@ -116,11 +122,13 @@ generate_tokens(const char* filename) {
 				contents++;
 				len++;
 			}	
+			len--;
 			buf = malloc(len + 1);
 			memcpy(buf, start, len);
 			buf[len] = 0;
 			len = 0;
 			append_token(tokens, buf, line, 13);
+			free(buf);
 		} else if (ispunct(*contents)) {
 			/* replace with strcmp? */
 			#define CHECK2(str) (*contents == str[0] && contents[1] == str[1])
@@ -150,7 +158,8 @@ generate_tokens(const char* filename) {
 				CHECK2("==") ? 145 :
 				CHECK2("!=") ? 146 : 
 				CHECK2(">=") ? 147 :
-				CHECK2("<=") ? 148 : (unsigned int)*contents
+				CHECK2("<=") ? 148 : 
+				CHECK2("->") ? 149 : (unsigned int)*contents
 			);
 
 			if (type == (unsigned int)*contents) {
@@ -163,12 +172,13 @@ generate_tokens(const char* filename) {
 			
 			len = (unsigned int)(contents - start);
 			buf = malloc(len + 1);
-			memcpy(buf, start, len);
+			strncpy(buf, start, len);
 			buf[len] = 0;
 			append_token(tokens, buf, line, type);
+			free(buf);
 		}
 	}
-	
+
 	return tokens;
 
 }
