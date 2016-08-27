@@ -28,6 +28,25 @@ static Token* copy_token(Token*);
 static void print_block(SyntaxBlock*, unsigned int);
 static void append_to_block(SyntaxTree*, SyntaxNode*);
 static void append_node(SyntaxNode*, SyntaxNode*);
+static SyntaxNode* new_node(SyntaxTree*, unsigned int, int);
+
+static SyntaxNode*
+new_node(SyntaxTree* T, unsigned int type, int has_block) {
+	SyntaxNode* node = malloc(sizeof(SyntaxNode));
+	node->type = type;
+	node->words = malloc(sizeof(SyntaxWord));
+	node->words->token = NULL;
+	node->words->next = NULL;
+	node->next = NULL;
+	node->prev = NULL;
+	node->block = has_block ? malloc(sizeof(SyntaxBlock)) : NULL;
+	if (node->block) {
+		node->block->node_parent = node;
+		node->block->children = NULL;
+	}
+	node->block_parent = T->current_block;
+	return node;
+}
 
 static void
 parse_error(SyntaxTree* T, const char* format, ...) {
@@ -229,7 +248,8 @@ generate_tree(Token* tokens) {
 
 static void
 handle_expression(SyntaxTree* T) {
-
+	Token* expression = parse_expression(T);
+	SyntaxNode* node = new_node();
 }
 
 static void
@@ -240,17 +260,8 @@ parse_if(SyntaxTree* T) {
 	if (T->tokens->type == '{') {
 		parse_error(T, "Expected condition in if statement");	
 	}
-	SyntaxNode* node = malloc(sizeof(SyntaxNode));
-	node->type = IF;
-	node->next = NULL;
-	node->prev = NULL;
-	node->block = malloc(sizeof(SyntaxBlock));
-	node->block->children = NULL;
-	node->block->node_parent = node;
-	node->block_parent = T->current_block;
-	node->words = malloc(sizeof(SyntaxWord));
+	SyntaxNode* node = new_node(T, IF, 1); 
 	node->words->token = parse_expression_count(T, 0, '{');
-	node->words->next = NULL;
 	append_to_block(T, node);
 	jump_in(T, node->block);
 }
