@@ -10,13 +10,19 @@ typedef struct SyntaxBlock SyntaxBlock;
 typedef enum NodeType NodeType;
 
 enum NodeType {
+	NOTYPE,
 	STATEMENT,
 	IF,
+	ELSE,
 	WHILE,
+	DO_WHILE,
+	FOR,
 	SWITCH,
+	CASE,
 	RETURN,
 	CONTINUE,
 	BREAK,
+	FUNCTION,
 	ROOT
 };
 

@@ -15,7 +15,7 @@ static void parse_case(SyntaxTree*);
 static void parse_continue(SyntaxTree*);
 static void parse_break(SyntaxTree*);
 static void parse_for(SyntaxTree*);
-static void handle_expression(SyntaxTree*);
+static void handle_statement(SyntaxTree*);
 static void parse_error(SyntaxTree*, const char*, ...);
 static void jump_out(SyntaxTree*);
 static void jump_in(SyntaxTree*, SyntaxBlock*);
@@ -164,20 +164,18 @@ static void print_block(SyntaxBlock* block, unsigned int indent) {
 		word = node->words;
 		INDENT();
 		printf("(%s\n", (
-			node->type == TYPE_IF ? "IF" :
-			node->type == TYPE_ELSE ? "ELSE" :
-			node->type == TYPE_WHILE ? "WHILE" :
-			node->type == TYPE_DO ? "DO_WHILE" :
-			node->type == TYPE_FUNCTION ? "FUNCTION" :
-			node->type == TYPE_RETURN ? "RETURN" :
-			node->type == TYPE_SWITCH ? "SWITCH" :
-			node->type == TYPE_CASE ? "CASE" :
-			node->type == TYPE_CONTINUE ? "CONTINUE" :
-			node->type == TYPE_BREAK ? "BREAK" :
-			node->type == TYPE_FOR ? "FOR" :
-			node->type == TYPE_IDENTIFIER ? "IDENTIFIER" :
-			node->type == TYPE_NUMBER ? "NUMBER" :
-			node->type == TYPE_STRING ? "STRING" : "?????"
+			node->type == STATEMENT ? "STATEMENT" :
+			node->type == IF ? "IF" :
+			node->type == ELSE ? "ELSE" :
+			node->type == WHILE ? "WHILE" :
+			node->type == DO_WHILE ? "DO_WHILE" :
+			node->type == FUNCTION ? "FUNCTION" :
+			node->type == RETURN ? "RETURN" :
+			node->type == SWITCH ? "SWITCH" :
+			node->type == CASE ? "CASE" :
+			node->type == CONTINUE ? "CONTINUE" :
+			node->type == BREAK ? "BREAK" :
+			node->type == FOR ? "FOR" : "????"
 		));
 		int word_count = 0;
 		while (word && ++word_count) {
@@ -237,7 +235,7 @@ generate_tree(Token* tokens) {
 			case 10: parse_break(T); break;
 			case 11: parse_for(T); break;
 			case '}': jump_out(T); break;
-			default: handle_expression(T); break; 
+			default: handle_statement(T); break; 
 		}
 	}
 	
@@ -247,9 +245,11 @@ generate_tree(Token* tokens) {
 }
 
 static void
-handle_expression(SyntaxTree* T) {
+handle_statement(SyntaxTree* T) {
 	Token* expression = parse_expression(T);
-	SyntaxNode* node = new_node();
+	SyntaxNode* node = new_node(T, STATEMENT, 0);
+	node->words->token = expression;
+	append_to_block(T, node);
 }
 
 static void

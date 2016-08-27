@@ -1,13 +1,7 @@
 if x > 10 {
-	if y < 100 {
-		if megamemes { 
-			real x = 10;	
-		}
-	}
-	if z < y {
-
-	}
-	if memes {
-
+	real x : 100;
+	real y : "Hello!";
+	if y == 100 {
+		real z : "MEMES!";
 	}
 }

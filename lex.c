@@ -86,6 +86,8 @@ generate_tokens(const char* filename) {
 					contents++;
 					len++;
 				}
+				contents++;
+				len--;
 			} else {
 				while (*contents && (isalnum(*contents) || *contents == '_') && *contents != ' ') {
 					contents++;
