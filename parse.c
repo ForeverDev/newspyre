@@ -15,6 +15,7 @@ static void parse_case(SyntaxTree*);
 static void parse_continue(SyntaxTree*);
 static void parse_break(SyntaxTree*);
 static void parse_for(SyntaxTree*);
+static void handle_expression(SyntaxTree*);
 static void parse_error(SyntaxTree*, const char*, ...);
 static void jump_out(SyntaxTree*);
 static void jump_in(SyntaxTree*, SyntaxBlock*);
@@ -59,13 +60,19 @@ static void
 append_node(SyntaxNode* head, SyntaxNode* node) {
 	SyntaxNode* at = head;
 	if (at->type == 0) {
-		memcpy(at, node, sizeof(SyntaxNode));
+		at->type = node->type;
+		at->words = node->words;
+		at->next = NULL;
+		at->prev = NULL;
+		at->block = node->block;
+		at->block_parent = node->block_parent;
 	} else {
 		while (at->next) {
 			at = at->next;
 		}
 		at->next = node;
 		node->prev = at;
+		node->next = NULL;
 	}
 }
 
@@ -126,13 +133,18 @@ parse_expression_count(SyntaxTree* T, unsigned int inc, unsigned int dec) {
 	return expression;
 }
 
+#define INDENT() for (int i = 0; i < indent; i++) printf("\t")
+
 static void print_block(SyntaxBlock* block, unsigned int indent) {
 	SyntaxNode* node = block->children;
+	if (!node) {
+		return;
+	}
+	SyntaxWord* word;
 	while (node) {
-		for (int i = 0; i < indent; i++) {
-			printf("\t");
-		}
-		printf("(%s)", (
+		word = node->words;
+		INDENT();
+		printf("(%s\n", (
 			node->type == TYPE_IF ? "IF" :
 			node->type == TYPE_ELSE ? "ELSE" :
 			node->type == TYPE_WHILE ? "WHILE" :
@@ -148,12 +160,24 @@ static void print_block(SyntaxBlock* block, unsigned int indent) {
 			node->type == TYPE_NUMBER ? "NUMBER" :
 			node->type == TYPE_STRING ? "STRING" : "?????"
 		));
+		int word_count = 0;
+		while (word && ++word_count) {
+			INDENT();
+			printf(" word %d: ", word_count - 1);
+			Token* at = word->token;
+			while (at) {
+				printf("%s ", at->word);
+				at = at->next;
+			}
+			printf("\n");
+			word = word->next;
+		}	
+		INDENT();
+		printf(")");
 		if (node->block) {
 			printf(" {\n");
 			print_block(node->block, indent + 1);
-			for (int i = 0; i < indent; i++) {
-				printf("\t");
-			}
+			INDENT();
 			printf("}");
 		}
 		printf("\n");
@@ -194,18 +218,18 @@ generate_tree(Token* tokens) {
 			case 10: parse_break(T); break;
 			case 11: parse_for(T); break;
 			case '}': jump_out(T); break;
-			default: 
-			{
-				Token* expression = parse_expression(T);
-				print_tokens(expression);	
-				printf("\n");
-			}
+			default: handle_expression(T); break; 
 		}
 	}
 	
 	print_tree(T);
 
 	return T;
+}
+
+static void
+handle_expression(SyntaxTree* T) {
+
 }
 
 static void
@@ -218,14 +242,15 @@ parse_if(SyntaxTree* T) {
 	}
 	SyntaxNode* node = malloc(sizeof(SyntaxNode));
 	node->type = IF;
-	node->words = malloc(sizeof(SyntaxWord));
 	node->next = NULL;
 	node->prev = NULL;
 	node->block = malloc(sizeof(SyntaxBlock));
 	node->block->children = NULL;
 	node->block->node_parent = node;
 	node->block_parent = T->current_block;
+	node->words = malloc(sizeof(SyntaxWord));
 	node->words->token = parse_expression_count(T, 0, '{');
+	node->words->next = NULL;
 	append_to_block(T, node);
 	jump_in(T, node->block);
 }
