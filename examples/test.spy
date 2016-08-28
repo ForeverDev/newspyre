@@ -1,7 +1,6 @@
-if x > 10 {
-	real x : 100;
-	real y : "Hello!";
-	if y == 100 {
-		real z : "MEMES!";
+function test(x : real, y : real) -> real {
+	if x == y {
+		printf("It works!\n");
+		z = 100;
 	}
 }

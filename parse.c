@@ -29,6 +29,17 @@ static void print_block(SyntaxBlock*, unsigned int);
 static void append_to_block(SyntaxTree*, SyntaxNode*);
 static void append_node(SyntaxNode*, SyntaxNode*);
 static SyntaxNode* new_node(SyntaxTree*, unsigned int, int);
+static void append_word(SyntaxWord*, SyntaxWord*);
+
+static void 
+append_word(SyntaxWord* head, SyntaxWord* word) {
+	SyntaxWord* at = head;
+	while (at->next) {
+		at = at->next;
+	}
+	at->next = word;
+	word->next = NULL;
+}
 
 static SyntaxNode*
 new_node(SyntaxTree* T, unsigned int type, int has_block) {
@@ -106,8 +117,11 @@ append_to_block(SyntaxTree* T, SyntaxNode* node) {
 
 static Token*
 copy_token(Token* token) {
-	Token* new = malloc(sizeof(token));
-	memcpy(new, token, sizeof(token));
+	Token* new = malloc(sizeof(Token));
+	new->word = token->word;
+	new->type = token->type;
+	new->line = token->line;
+	new->next = NULL;
 	return new;
 }
 
@@ -154,7 +168,8 @@ parse_expression_count(SyntaxTree* T, unsigned int inc, unsigned int dec) {
 
 #define INDENT() for (int i = 0; i < indent; i++) printf("\t")
 
-static void print_block(SyntaxBlock* block, unsigned int indent) {
+static void 
+print_block(SyntaxBlock* block, unsigned int indent) {
 	SyntaxNode* node = block->children;
 	if (!node) {
 		return;
@@ -268,12 +283,28 @@ parse_if(SyntaxTree* T) {
 
 static void
 parse_else(SyntaxTree* T) {
-
+	/* begins on token ELSE */
+	T->tokens = T->tokens->next;
+	if (T->tokens->type != '{') {
+		parse_error(T, "Expected '{' after else");
+	}
+	SyntaxNode* node = new_node(T, ELSE, 1);
+	append_to_block(T, node);
+	jump_in(T, node->block);
 }
 
 static void
 parse_while(SyntaxTree* T) {
-
+	/* begins on token WHILE */
+	T->tokens = T->tokens->next;
+	/* now on first token of condition */
+	if (T->tokens->type == '{') {
+		parse_error(T, "Expected condition in while loop");	
+	}
+	SyntaxNode* node = new_node(T, WHILE, 1); 
+	node->words->token = parse_expression_count(T, 0, '{');
+	append_to_block(T, node);
+	jump_in(T, node->block);
 }
 
 static void
@@ -281,8 +312,49 @@ parse_do_while(SyntaxTree* T) {
 
 }
 
+/* syntax function name(x : int, y : string) -> int { ... } */
 static void
 parse_function(SyntaxTree* T) {
+	/* begins on token FUNCTION */
+	T->tokens = T->tokens->next;
+	/* now on name of function */
+	SyntaxNode* node = new_node(T, FUNCTION, 1);
+	SyntaxWord* return_type = malloc(sizeof(SyntaxWord));
+	return_type->token = blank_token();
+	return_type->next = NULL;
+	SyntaxWord* name = malloc(sizeof(SyntaxWord));
+	name->token = copy_token(T->tokens);
+	name->next = NULL;
+	node->words = name;
+	T->tokens = T->tokens->next->next;
+
+	while (T->tokens && T->tokens->type != ')') {
+		SyntaxWord* argument = malloc(sizeof(SyntaxWord));
+		argument->token = blank_token();
+		while (T->tokens && T->tokens->type != ',' && T->tokens->type != ')') {
+			append_token_copy(argument->token, T->tokens);
+			T->tokens = T->tokens->next;	
+		}
+		/* append to return_type because the order is name, return_type, args */
+		append_word(return_type, argument);
+		if (T->tokens->type == ')') {
+			break;
+		}
+		T->tokens = T->tokens->next;
+	}
+	
+	T->tokens = T->tokens->next->next;
+	
+	while (T->tokens->type != '{') {
+		append_token_copy(return_type->token, T->tokens);
+		T->tokens = T->tokens->next;
+	}
+
+	T->tokens = T->tokens->next;
+	name->next = return_type;
+	append_to_block(T, node);
+	jump_in(T, node->block);
+		
 
 }
 

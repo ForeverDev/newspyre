@@ -94,14 +94,12 @@ generate_tokens(const char* filename) {
 					len++;
 				}
 			}
-			buf = malloc(len + 1);
-			strncpy(buf, start, len);
+			buf = calloc(1, len + 1);
+			for (unsigned i = 0; i < contents - start; i++) {
+				buf[i] = start[i];
+			}
 			buf[len] = 0;
 			len = 0;
-			/* remove whitespace from buffer, FIXME */
-			for (int i = 0; i < strlen(buf); i++) {
-				if (buf[i] == 32) buf[i] = 0;
-			}
 			append_token(tokens, buf, line, (
 				is_string ? 14 : 
 				!strcmp(buf, "if") ? 1 : 
