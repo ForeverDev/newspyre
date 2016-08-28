@@ -19,6 +19,7 @@ typedef enum TokenType TokenType;
 #define TYPE_IDENTIFIER	12
 #define TYPE_NUMBER		13
 #define TYPE_STRING		14
+#define TYPE_FUNCCALL	15
 #define TYPE_SPACE		32
 #define TYPE_EXCL		33
 #define TYPE_DQUOTE		34

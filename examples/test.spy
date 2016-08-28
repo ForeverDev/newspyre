@@ -1,3 +1,4 @@
-if x * y + 13 {
-
+function x(y : real, z : real) -> real {
+	memes : real;
+	swag : string;
 }

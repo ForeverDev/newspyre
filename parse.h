@@ -23,6 +23,7 @@ enum NodeType {
 	CONTINUE,
 	BREAK,
 	FUNCTION,
+	DECLARATION,
 	ROOT
 };
 
