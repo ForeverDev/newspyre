@@ -16,9 +16,9 @@ typedef enum AssemblerOperand AssemblerOperand;
 
 enum AssemblerOperand {
 	NO_OPERAND = 0,
-	INT64,
-	INT32,
-	FLOAT64
+	_INT64,
+	_INT32,
+	_FLOAT64
 };
 
 struct Assembler {

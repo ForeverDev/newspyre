@@ -6,7 +6,7 @@
 
 const AssemblerInstruction instructions[0xFF] = {
 	{"NOOP",	0x00, {NO_OPERAND}},
-	{"IPUSH",	0x01, {INT64}},
+	{"IPUSH",	0x01, {_INT64}},
 	{"IADD",	0x02, {NO_OPERAND}},
 	{"ISUB",	0x03, {NO_OPERAND}},
 	{"IMUL",	0x04, {NO_OPERAND}},
@@ -24,13 +24,13 @@ const AssemblerInstruction instructions[0xFF] = {
 	{"ILT",		0x10, {NO_OPERAND}},
 	{"ILE",		0x11, {NO_OPERAND}},
 	{"ICMP",	0x12, {NO_OPERAND}},
-	{"JNZ",		0x13, {INT32}},
-	{"JZ",		0x14, {INT32}},
-	{"JMP",		0x15, {INT32}},
-	{"CALL",	0x16, {INT32, INT32}},
+	{"JNZ",		0x13, {_INT32}},
+	{"JZ",		0x14, {_INT32}},
+	{"JMP",		0x15, {_INT32}},
+	{"CALL",	0x16, {_INT32, _INT32}},
 	{"IRET",	0x17, {NO_OPERAND}},
-	{"CCALL",	0x18, {INT32}},
-	{"FPUSH",	0x19, {FLOAT64}},
+	{"CCALL",	0x18, {_INT32}},
+	{"FPUSH",	0x19, {_FLOAT64}},
 	{"FADD",	0x1A, {NO_OPERAND}},
 	{"FSUB",	0x1B, {NO_OPERAND}},
 	{"FMUL",	0x1C, {NO_OPERAND}},
@@ -41,21 +41,21 @@ const AssemblerInstruction instructions[0xFF] = {
 	{"FLE",		0x21, {NO_OPERAND}},
 	{"FCMP",	0x22, {NO_OPERAND}},
 	{"FRET",	0x23, {NO_OPERAND}},
-	{"ILLOAD",	0x24, {INT32}},
-	{"ILSAVE",	0x25, {INT32}},
-	{"IARG",	0x26, {INT32}},
+	{"ILLOAD",	0x24, {_INT32}},
+	{"ILSAVE",	0x25, {_INT32}},
+	{"IARG",	0x26, {_INT32}},
 	{"ILOAD",	0x27, {NO_OPERAND}},
 	{"ISAVE",	0x28, {NO_OPERAND}},
-	{"RES",		0x29, {INT32}},
-	{"ILEA",	0x2A, {INT32}},
+	{"RES",		0x29, {_INT32}},
+	{"ILEA",	0x2A, {_INT32}},
 	{"IDER",	0x2B, {NO_OPERAND}},
-	{"ICINC",	0x2C, {INT64}},
+	{"ICINC",	0x2C, {_INT64}},
 	{"CDER",	0x2D, {NO_OPERAND}},
 	{"LOR",		0x2E, {NO_OPERAND}},
 	{"LAND",	0x2F, {NO_OPERAND}},
 	{"PADD",	0x30, {NO_OPERAND}},
 	{"PSUB",	0x31, {NO_OPERAND}},
-	{"LOG",		0x32, {INT32}},
+	{"LOG",		0x32, {_INT32}},
 	{"VRET",	0x33, {NO_OPERAND}},
 	{"DBON",	0x34, {NO_OPERAND}},
 	{"DBOFF",	0x35, {NO_OPERAND}},
@@ -63,8 +63,8 @@ const AssemblerInstruction instructions[0xFF] = {
 	{"CJNZ",	0x37, {NO_OPERAND}},
 	{"CJZ",		0x38, {NO_OPERAND}},
 	{"CJMP",	0x39, {NO_OPERAND}},
-	{"ILNSAVE",	0x3A, {INT32, INT32}},
-	{"ILNLOAD",	0x3B, {INT32, INT32}},
+	{"ILNSAVE",	0x3A, {_INT32, _INT32}},
+	{"ILNLOAD",	0x3B, {_INT32, _INT32}},
 };
 
 void
@@ -156,9 +156,9 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 					if (ins->operands[i] == NO_OPERAND) break;
 					A.tokens = A.tokens->next;
 					index += (
-						ins->operands[i] == INT64 ? 8 :
-						ins->operands[i] == INT32 ? 4 : 
-						ins->operands[i] == FLOAT64 ? 8 : 0
+						ins->operands[i] == _INT64 ? 8 :
+						ins->operands[i] == _INT32 ? 4 : 
+						ins->operands[i] == _FLOAT64 ? 8 : 0
 					);
 				}
 			}
@@ -225,19 +225,19 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 						Assembler_die(&A, "expected operand(s)");
 					}
 					switch (ins->operands[i]) {
-						case INT64:
+						case _INT64:
 						{
 							uint64_t n = A.tokens->word[1] == 'x' ? strtoll(&A.tokens->word[2], NULL, 16) : strtol(A.tokens->word, NULL, 10);
 							fwrite(&n, 1, 8, tmp_output.handle);
 							break;
 						}
-						case INT32:
+						case _INT32:
 						{
 							uint64_t n = A.tokens->word[1] == 'x' ? strtoll(&A.tokens->word[2], NULL, 16) : strtol(A.tokens->word, NULL, 10);
 							fwrite(&n, 1, 4, tmp_output.handle);
 							break;
 						}
-						case FLOAT64:
+						case _FLOAT64:
 						{
 							double n = strtod(A.tokens->word, NULL);
 							fwrite(&n, 1, 8, tmp_output.handle);

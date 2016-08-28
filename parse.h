@@ -52,6 +52,8 @@ struct SyntaxTree {
 	Token* tokens;
 };
 
+extern unsigned int op_pres[256];
+
 SyntaxTree* generate_tree(Token*);
 void print_tree(SyntaxTree*);
 

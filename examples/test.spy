@@ -1,6 +1,3 @@
-function test(x : real, y : real) -> real {
-	if x == y {
-		printf("It works!\n");
-		z = 100;
-	}
+if x * y + 13 {
+
 }
