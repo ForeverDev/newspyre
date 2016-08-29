@@ -1,0 +1,31 @@
+let foo "foo"
+let bar "bar"
+let wazz "wazz"
+ipush 12
+ipush 11
+iadd
+ccall bar
+ipush 13
+ccall foo
+jz __label__0000
+__label__0001:
+ipush 17
+ipush 11
+ipush 13
+isub
+iadd
+ipush 69
+ccall wazz
+ipush 42
+ilt
+jz __label__0002
+ipush 1
+ipush 10
+ipush 131
+ipush 1231
+isub
+imul
+iadd
+jmp __label__0001
+__label__0002:
+__label__0000:

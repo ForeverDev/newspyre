@@ -26,6 +26,7 @@ append_token(Token* head, char* word, unsigned int line, unsigned int type) {
 		head->line = line;
 		head->type = type;
 		head->next = NULL;
+		head->prev = NULL;
 	} else {
 		Token* new = malloc(sizeof(Token));
 		while (head->next) {
@@ -35,6 +36,7 @@ append_token(Token* head, char* word, unsigned int line, unsigned int type) {
 		new->line = line;
 		new->type = type;
 		new->next = NULL;
+		new->prev = head;
 		head->next = new;
 	}
 }
@@ -122,10 +124,12 @@ generate_tokens(const char* filename) {
 				contents++;
 				len++;
 			}	
-			len--;
-			buf = malloc(len + 1);
+			buf = calloc(1, len + 1);
 			memcpy(buf, start, len);
 			buf[len] = 0;
+			if (!isdigit(buf[len - 1])) {
+				buf[len - 1] = 0;
+			}
 			len = 0;
 			append_token(tokens, buf, line, 13);
 			free(buf);

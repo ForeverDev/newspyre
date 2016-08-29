@@ -30,6 +30,7 @@ static void append_to_block(Tree*, TreeNode*);
 static void append_node(TreeNode*, TreeNode*);
 static TreeNode* new_node(Tree*, unsigned int, int);
 static void append_word(TreeWord*, TreeWord*);
+static void fix_connections(TreeNode*);
 
 static void 
 append_word(TreeWord* head, TreeWord* word) {
@@ -201,6 +202,16 @@ print_block(TreeBlock* block, unsigned int indent) {
 		} else {
 			printf("\n");
 		}
+		INDENT();
+		printf(" addr: %p\n", node);
+		INDENT();
+		printf(" next: %p\n", node->next);
+		INDENT();
+		printf(" parent: %p\n", node->parent_block ? node->parent_block->parent_node : 0);
+		if (node->block) {
+			INDENT();
+			printf(" first_child: %p\n", node->block->children);
+		}
 		int word_count = 0;
 		while (word && ++word_count) {
 			INDENT();
@@ -231,9 +242,6 @@ print_block(TreeBlock* block, unsigned int indent) {
 static void
 handle_statement(Tree* T) {
 	Token* expression = parse_expression(T);
-	printf("LOL ");
-	print_tokens(expression);
-	printf("\n");
 	TreeNode* node = new_node(T, STATEMENT, 0);
 	node->words->token = expression;
 	append_to_block(T, node);
@@ -415,6 +423,22 @@ parse_declaration(Tree* T) {
 	append_to_block(T, node); 
 }
 
+static void
+fix_connections(TreeNode* node) {
+	TreeNode* at = node;
+	while (at) {
+		if (at->block) {
+			TreeNode* child = at->block->children;
+			while (child) {
+				child->parent_block->parent_node = at;
+				fix_connections(child);
+				child = child->next;
+			}
+		}
+		at = at->next;
+	}
+}
+
 TreeBlock*
 generate_tree(Token* tokens) {
 	Tree* T = malloc(sizeof(Tree));
@@ -449,11 +473,16 @@ generate_tree(Token* tokens) {
 		}
 	}
 
-	//  print_block(T->root_block, 0);
-	
+	/* TODO remove need for this... still need to figure
+	   out what the fuck is causing the list pointer problems
+	*/
+	fix_connections(T->nodes);
+
 	TreeBlock* block = T->root_block;
+
 	/* TODO cleanup correctly */
 	free(T);
+
 
 	return block;
 }
