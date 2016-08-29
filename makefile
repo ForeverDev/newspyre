@@ -1,6 +1,6 @@
 CC = gcc
 CF = -std=c99 -O2
-OBJ = build/spyre.o build/main.o build/api.o build/assembler_lex.o build/assembler.o build/lex.o build/parse.o
+OBJ = build/spyre.o build/main.o build/api.o build/assembler_lex.o build/assembler.o build/lex.o build/parse.o build/generate.o
 
 all: spy.exe
 
@@ -28,6 +28,9 @@ build/lex.o:
 
 build/parse.o:
 	$(CC) $(CF) -c parse.c -o build/parse.o
+
+build/generate.o:
+	$(CC) $(CF) -c generate.c -o build/generate.o
 
 build/main.o:
 	$(CC) $(CF) -c main.c -o build/main.o

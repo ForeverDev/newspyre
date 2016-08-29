@@ -3,6 +3,7 @@
 #include "assembler.h"
 #include "lex.h"
 #include "parse.h"
+#include "generate.h"
 
 int main(int argc, char** argv) {
 	
@@ -17,7 +18,8 @@ int main(int argc, char** argv) {
 		Spy_execute(argv[2], SPY_NOFLAG, 1, args);
 	} else if (!strncmp(argv[1], "c", 1)) {
 		Token* tokens = generate_tokens(argv[2]);	
-		SyntaxTree* tree = generate_tree(tokens);
+		TreeBlock* tree = generate_tree(tokens);
+		generate_bytecode(tree, "examples/test.spys");
 	}
 
 	return 0;

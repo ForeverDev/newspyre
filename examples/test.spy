@@ -1,4 +1,1 @@
-function x(y : real, z : real) -> real {
-	memes : real;
-	swag : string;
-}
+if (x + y) { }
