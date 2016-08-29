@@ -17,7 +17,7 @@ static void parse_break(Tree*);
 static void parse_for(Tree*);
 static void parse_declaration(Tree*);
 static void parse_error(Tree*, const char*, ...);
-static void handle_statement(Tree*);
+static void parse_statement(Tree*);
 static void jump_out(Tree*);
 static void jump_in(Tree*, TreeBlock*);
 
@@ -240,7 +240,7 @@ print_block(TreeBlock* block, unsigned int indent) {
 }
 
 static void
-handle_statement(Tree* T) {
+parse_statement(Tree* T) {
 	Token* expression = parse_expression(T);
 	TreeNode* node = new_node(T, STATEMENT, 0);
 	node->words->token = expression;
@@ -467,9 +467,16 @@ generate_tree(Token* tokens) {
 			case TYPE_CONTINUE: parse_continue(T); break;
 			case TYPE_BREAK: parse_break(T); break;
 			case TYPE_FOR: parse_for(T); break;
-			case TYPE_IDENTIFIER: parse_declaration(T); break;
+			case TYPE_IDENTIFIER: 
+				if (T->tokens->next && T->tokens->next->type == TYPE_COLON) {
+					parse_declaration(T);
+				} else {
+					parse_statement(T);
+				}
+				break;
+			
 			case '}': jump_out(T); break;
-			default: handle_statement(T); break;
+			default: parse_statement(T); break;
 		}
 	}
 

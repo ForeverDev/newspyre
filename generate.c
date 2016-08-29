@@ -4,8 +4,8 @@
 #include <stdarg.h>
 #include "generate.h"
 
-#define LABEL_FORMAT "__label__%04d"
-#define DEF_LABEL_FORMAT "__label__%04d:\n"
+#define LABEL_FORMAT "label__%04d"
+#define DEF_LABEL_FORMAT "label__%04d:\n"
 #define JMP_LABEL_FORMAT "jmp " LABEL_FORMAT "\n"
 #define JNZ_LABEL_FORMAT "jnz " LABEL_FORMAT "\n"
 #define JZ_LABEL_FORMAT "jz " LABEL_FORMAT "\n"
@@ -276,7 +276,6 @@ compile_function_call(Token** expression) {
 			count--;
 			if (count == 0) break;
 		}
-		printf("COUNTING %s\n", at->word);
 		at = at->next;
 	}
 
@@ -288,7 +287,6 @@ compile_function_call(Token** expression) {
 	ExpressionNode* compiled = compile_expression(arg_start);	
 	ExpressionNode* counter = compiled;
 	while (counter) {
-		printf("%s\n", counter->token->word);
 		counter = counter->next;
 	}
 	end->next = next_save;
@@ -312,24 +310,25 @@ compile_expression(Token* expression) {
 
 	static const unsigned int op_pres[256] = {
 		[TYPE_COMMA]		= 1,
-		[TYPE_EQ]			= 2,
-		[TYPE_NOTEQ]		= 2,
-		[TYPE_PERIOD]		= 3,
-		[TYPE_LOGAND]		= 3,
-		[TYPE_LOGOR]		= 3,
-		[TYPE_GT]			= 4,
-		[TYPE_GE]			= 4,
-		[TYPE_LT]			= 4,
-		[TYPE_LE]			= 4,
-		[TYPE_AMPERSAND]	= 5,
-		[TYPE_LINE]			= 5,
-		[TYPE_XOR]			= 5,
-		[TYPE_SHL]			= 5,
-		[TYPE_SHR]			= 5,
-		[TYPE_PLUS]			= 6,
-		[TYPE_HYPHON]		= 6,
-		[TYPE_ASTER]		= 7,
-		[TYPE_FORSLASH]		= 7
+		[TYPE_ASSIGN]		= 2,
+		[TYPE_EQ]			= 3,
+		[TYPE_NOTEQ]		= 3,
+		[TYPE_PERIOD]		= 4,
+		[TYPE_LOGAND]		= 4,
+		[TYPE_LOGOR]		= 4,
+		[TYPE_GT]			= 5,
+		[TYPE_GE]			= 5,
+		[TYPE_LT]			= 5,
+		[TYPE_LE]			= 5,
+		[TYPE_AMPERSAND]	= 6,
+		[TYPE_LINE]			= 6,
+		[TYPE_XOR]			= 6,
+		[TYPE_SHL]			= 6,
+		[TYPE_SHR]			= 6,
+		[TYPE_PLUS]			= 7,
+		[TYPE_HYPHON]		= 7,
+		[TYPE_ASTER]		= 8,
+		[TYPE_FORSLASH]		= 8
 	};
 
 	while (at) {
@@ -422,6 +421,10 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 				case TYPE_LE: writestr(S, "ile\n"); break;
 				case TYPE_GT: writestr(S, "igt\n"); break;
 				case TYPE_GE: writestr(S, "ige\n"); break;
+				case TYPE_ASSIGN: {
+					
+					break;
+				}
 			}
 		}
 		at = at->next;
@@ -432,7 +435,7 @@ static void
 compile_if(CompileState* S) {
 	push_instruction(S, DEF_LABEL_FORMAT, S->label_count);
 	generate_expression(S, compile_expression(S->node_focus->words->token));
-	writestr(S, JZ_LABEL_FORMAT "\n", S->label_count);
+	writestr(S, JZ_LABEL_FORMAT, S->label_count);
 	S->label_count++;
 }
 
@@ -454,13 +457,11 @@ compile_function(CompileState* S) {
 
 static void
 compile_statement(CompileState* S) {
-	ExpressionNode* expression = compile_expression(S->node_focus->words->token);
-	generate_expression(S, expression);
+	generate_expression(S, compile_expression(S->node_focus->words->token));
 }
 
 void
 generate_bytecode(TreeBlock* tree, const char* output_name) {
-	print_block(tree, 0);
 	CompileState* S = malloc(sizeof(CompileState));
 	S->root_block = tree;
 	S->node_focus = S->root_block->children;
@@ -514,6 +515,9 @@ generate_bytecode(TreeBlock* tree, const char* output_name) {
 	while (S->ins_stack) {
 		pop_instruction(S);
 	}
+	
+	writestr(S, "noop\n");
+
 	fclose(S->output);
 
 }

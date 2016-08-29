@@ -1,31 +1,26 @@
-let foo "foo"
-let bar "bar"
-let wazz "wazz"
+let square_root "square_root"
+ipush 10
+ipush 13
+ipush 2
+imul
+iadd
+jz label__0000
+ipush 42
+ipush 13
+imul
 ipush 12
 ipush 11
 iadd
-ccall bar
-ipush 13
-ccall foo
-jz __label__0000
-__label__0001:
-ipush 17
-ipush 11
-ipush 13
 isub
-iadd
-ipush 69
-ccall wazz
-ipush 42
-ilt
-jz __label__0002
-ipush 1
+ccall square_root
+jz label__0001
+ipush 5
 ipush 10
-ipush 131
-ipush 1231
-isub
-imul
-iadd
-jmp __label__0001
-__label__0002:
-__label__0000:
+call x, 2
+jz label__0002
+ipush 50
+ccall test
+label__0002:
+label__0001:
+label__0000:
+noop
