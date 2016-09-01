@@ -1,18 +1,6 @@
 function main() -> real {
-	println("THE PROGRAM PRINTED OUT:\n%s", test());
+	x : real;
+	y : real;
+	println("x is %d", x + y);
 	return 0;
 }
-
-function test() -> string {
-	if 1 == 5 {
-		return "this is";
-	}
-	if 5 == 10 {
-		return "an example of";
-	}
-	if 5 * 5 == 100 / 4 {
-		return "program logic!!!";
-	}
-}
-
-

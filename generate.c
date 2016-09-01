@@ -49,6 +49,25 @@ static int function_exists(CompileState*, const char*);
 static void scan_for_calls(CompileState*, Token* expression);
 static void advance(CompileState*);
 static unsigned int count_function_var_size(CompileState*);
+static unsigned int count_function_args(CompileState*);
+static TreeVariable* find_variable(CompileState*, const char*);
+
+static TreeVariable*
+find_variable(CompileState* S, const char* identifier) {
+	TreeBlock* block = S->node_focus->parent_block;
+	while (block) {
+		TreeVariable* var = block->locals;
+		while (var) {
+			if (!strcmp(var->identifier, identifier)) {
+				return var;
+			}
+			var = var->next;
+		}
+		if (!block->parent_node) break;
+		block = block->parent_node->parent_block;
+	}
+	return NULL;
+}
 
 static unsigned int
 count_function_var_size(CompileState* state) {
@@ -61,6 +80,11 @@ count_function_var_size(CompileState* state) {
 		at = at->next;
 	}
 	return size;
+}
+
+static unsigned int
+count_function_args(CompileState* state) {
+	unsigned int num = 0;
 }
 
 static void
@@ -463,6 +487,11 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 					
 					break;
 				}
+				case TYPE_IDENTIFIER: {
+					TreeVariable* var = find_variable(S, at->token->word);
+					writestr(S, "ilload %d\n", var->offset);
+					break;
+				}
 			}
 		}
 		at = at->next;
@@ -491,9 +520,6 @@ compile_while(CompileState* S) {
 
 static void
 compile_function_body(CompileState* S) {
-	if (!strcmp(S->node_focus->words->token->word, "main")) {
-		S->main_label = ++S->label_count; /* pre-increment so that the label isn't 0 */
-	}
 	unsigned int space = count_function_var_size(S);
 	unsigned int return_label;
 	writestr(S, "__FUNC__%s:\n", S->node_focus->words->token->word);
@@ -584,6 +610,7 @@ generate_bytecode(TreeBlock* tree, const char* output_name) {
 			case WHILE: compile_while(S); break;
 			case FUNCTION: compile_function_body(S); break;
 			case RETURN: compile_return(S); break;
+			case DECLARATION: break;
 			default: compile_statement(S); break;
 		}
 		advance(S);

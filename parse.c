@@ -51,8 +51,9 @@ new_node(Tree* T, unsigned int type, int has_block) {
 	node->words->next = NULL;
 	node->next = NULL;
 	node->prev = NULL;
-	node->block = has_block ? malloc(sizeof(TreeBlock)) : NULL;
-	if (node->block) {
+	node->block = NULL;
+	if (has_block) {
+		node->block = malloc(sizeof(TreeBlock));
 		node->block->parent_node = node;
 		node->block->children = NULL;
 		node->block->locals = NULL;
@@ -118,6 +119,7 @@ append_to_block(Tree* T, TreeNode* node) {
 		local->identifier = node->words->token->word;
 		local->next = NULL;
 		local->modifiers = 0;
+		local->offset = 0;
 		/* scan for variable modifiers */
 		Token* modifier = node->words->next->token;
 		while (modifier->next) {
@@ -141,18 +143,21 @@ append_to_block(Tree* T, TreeNode* node) {
 		} else {
 			local->size = 0;
 		}
-		printf("MODIFIERS: %x\n", local->modifiers);
 		/* append to variable to the list of locals */
+		unsigned int offset = 0;
 		if (T->current_block->locals) {
 			TreeVariable* at = T->current_block->locals;
 			while (at->next) {
 				if (!strcmp(at->identifier, local->identifier)) {
 					parse_error(T, "duplicate variable %s", local->identifier);	
 				}
+				offset++;
 				at = at->next;
-			}	
+			}
+			local->offset = offset;
 			at->next = local;
 		} else {
+			local->offset = 0;
 			T->current_block->locals = local;
 		}
 	}

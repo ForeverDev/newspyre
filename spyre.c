@@ -376,12 +376,24 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	goto dispatch;
 
 	call:
-	a = Spy_readInt32(&S);
-	Spy_pushInt(&S, Spy_readInt32(&S)); /* push number of arguments */
-	Spy_pushPointer(&S, (void *)S.bp); /* push base pointer */
-	Spy_pushPointer(&S, (void *)S.ip); /* push return address */
-	S.bp = S.sp;
-	S.ip = (uint8_t *)&S.bytecode[a];
+	{
+		a = Spy_readInt32(&S);
+		uint32_t num_args = Spy_readInt32(&S);
+		int64_t* pops = malloc(num_args * 8);
+		/* flip the arguments */
+		for (int i = 0; i < num_args; i++) {
+			pops[i] = *(int64_t *)Spy_popRaw(&S);
+		}
+		for (int i = 0; i < num_args; i++) {
+			Spy_pushInt(&S, pops[i]);
+		}
+		free(pops);
+		Spy_pushInt(&S, num_args); /* push number of arguments */
+		Spy_pushPointer(&S, (void *)S.bp); /* push base pointer */
+		Spy_pushPointer(&S, (void *)S.ip); /* push return address */
+		S.bp = S.sp;
+		S.ip = (uint8_t *)&S.bytecode[a];
+	}
 	goto dispatch;
 
 	iret:
@@ -398,6 +410,7 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 		uint32_t name_index = Spy_readInt32(&S);
 		uint32_t num_args = Spy_readInt32(&S);
 		int64_t* pops = malloc(num_args * 8);
+		/* flip the arguments */
 		for (int i = 0; i < num_args; i++) {
 			pops[i] = *(int64_t *)Spy_popRaw(&S);
 		}

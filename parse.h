@@ -40,6 +40,7 @@ struct TreeVariable {
 	char* datatype;
 	uint16_t modifiers;
 	unsigned int size; /* in bytes */
+	unsigned int offset;
 	TreeVariable* next;
 };
 
@@ -61,6 +62,8 @@ struct TreeNode {
 	TreeNode* prev;
 	TreeBlock* block;
 	TreeBlock* parent_block;
+
+	TreeVariable* variable; /* only applicable if DECLARATION */
 };
 
 struct Tree {
