@@ -1,12 +1,16 @@
 let __CFUNC__println "println"
-let __STR__0000 "x is %d"
+let __STR__0000 "the program printed out: %d"
 jmp __ENTRY_POINT__
 __FUNC__main:
-res 2
+res 0
 ipush __STR__0000
-ipush 1
-ipush 5
-shl
+ipush 50
+ipush 50
+imul
+ipush 4
+ipush 3
+isub
+isub
 ccall __CFUNC__println, 2
 ipush 0
 jmp __LABEL__0000
