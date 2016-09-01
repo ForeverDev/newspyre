@@ -4,8 +4,8 @@
 #include <stdarg.h>
 #include "generate.h"
 
-#define LABEL_FORMAT "label__%04d"
-#define DEF_LABEL_FORMAT "label__%04d:\n"
+#define LABEL_FORMAT "__LABEL__%04d"
+#define DEF_LABEL_FORMAT "__LABEL__%04d:\n"
 #define JMP_LABEL_FORMAT "jmp " LABEL_FORMAT "\n"
 #define JNZ_LABEL_FORMAT "jnz " LABEL_FORMAT "\n"
 #define JZ_LABEL_FORMAT "jz " LABEL_FORMAT "\n"
@@ -53,8 +53,28 @@ scan_for_calls(CompileState* state, Token* expression) {
 	while (at->next) {
 		if (at->type == TYPE_IDENTIFIER && at->next->type == TYPE_OPENPAR) {
 			if (!function_exists(state, at->word)) {
-				writestr(state, "let %s \"%s\"\n", at->word, at->word);
+				writestr(state, "let __CFUNC__%s \"%s\"\n", at->word, at->word);
+				/* TODO FIX MEMORY LEAK! */
+				char* save = at->word;
+				at->word = malloc(32);
+				sprintf(at->word, "__CFUNC__%s", save);
 			}
+		}
+		at = at->next;
+	}
+}
+
+static void
+scan_for_literals(CompileState* state, Token* expression) {
+	Token* at = expression;
+	while (at) {
+		if (at->type == TYPE_STRING) {
+			/* TODO don't redefine literals that already exist */
+			writestr(state, "let __STR__%04d \"%s\"\n", state->literal_count, at->word); 
+			/* TODO FIX MEMORY LEAK! */
+			at->word = malloc(32);
+			sprintf(at->word, "__STR__%04d", state->literal_count); 
+			state->literal_count++;
 		}
 		at = at->next;
 	}
@@ -62,7 +82,7 @@ scan_for_calls(CompileState* state, Token* expression) {
 
 static int
 function_exists(CompileState* state, const char* name) {
-	DefinedFunction* func = state->defined_functions;
+	LiteralValue* func = state->defined_functions;
 	while (func) {
 		if (!strcmp(func->name, name)) {
 			return 1;
@@ -421,6 +441,10 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 				case TYPE_LE: writestr(S, "ile\n"); break;
 				case TYPE_GT: writestr(S, "igt\n"); break;
 				case TYPE_GE: writestr(S, "ige\n"); break;
+				case TYPE_COMMA: break;
+				case TYPE_STRING: 
+					writestr(S, "ipush %s\n", at->token->word); 
+					break;
 				case TYPE_ASSIGN: {
 					
 					break;
@@ -466,10 +490,12 @@ generate_bytecode(TreeBlock* tree, const char* output_name) {
 	S->root_block = tree;
 	S->node_focus = S->root_block->children;
 	S->label_count = 0;
+	S->literal_count = 0;
 	S->depth = 0;
 	S->output = fopen(output_name, "w");
 	S->ins_stack = NULL;
 	S->defined_functions = NULL;
+	S->string_literals = NULL;
 	if (!S->output) {
 		printf("couldn't open file for writing\n");
 		exit(1);
@@ -477,20 +503,25 @@ generate_bytecode(TreeBlock* tree, const char* output_name) {
 	/* walk the tree once to find C functions, string literals, globals */
 	while (S->node_focus) {
 		if (S->node_focus->type == FUNCTION) {
-			DefinedFunction* func = malloc(sizeof(DefinedFunction));
+			LiteralValue* func = malloc(sizeof(LiteralValue));
 			func->name = S->node_focus->words->token->word;
 			func->next = NULL;
 			if (!S->defined_functions) {
 				S->defined_functions = func;
 			} else {
-				DefinedFunction* at = S->defined_functions;
+				LiteralValue* at = S->defined_functions;
 				while (at->next) {
 					at = at->next;
 				}
 				at->next = func;
 			}
-		} else if (S->node_focus->type == WHILE || S->node_focus->type == IF) {
+		} else if (
+			S->node_focus->type == WHILE 
+			|| S->node_focus->type == IF
+			|| S->node_focus->type == STATEMENT
+		) {
 			scan_for_calls(S, S->node_focus->words->token);
+			scan_for_literals(S, S->node_focus->words->token);
 		}
 		node_advance(S);
 		if (!S->node_focus || S->node_focus->type == ROOT) {
@@ -516,7 +547,9 @@ generate_bytecode(TreeBlock* tree, const char* output_name) {
 		pop_instruction(S);
 	}
 	
-	writestr(S, "noop\n");
+	/* replace with something else? prevents the error that happens when
+	 * a label isn't followed by any instructions */	
+	writestr(S, "ipush 0\n");
 
 	fclose(S->output);
 

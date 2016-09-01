@@ -1,26 +1,10 @@
-let square_root "square_root"
+let __CFUNC__println "println"
+let __STR__0000 "this is working great!\n"
 ipush 10
-ipush 13
-ipush 2
-imul
-iadd
-jz label__0000
-ipush 42
-ipush 13
-imul
-ipush 12
-ipush 11
-iadd
-isub
-ccall square_root
-jz label__0001
-ipush 5
-ipush 10
-call x, 2
-jz label__0002
 ipush 50
-ccall test
-label__0002:
-label__0001:
-label__0000:
-noop
+igt
+jz __LABEL__0000
+ipush __STR__0000
+ccall __CFUNC__println
+__LABEL__0000:
+ipush 0

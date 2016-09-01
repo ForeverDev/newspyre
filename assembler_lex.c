@@ -5,8 +5,8 @@
 #include "assembler_lex.h"
 
 AssemblerToken*
-Lexer_convertToAssemblerTokens(const char* source) {
-	Lexer L;
+AsmLexer_convertToAssemblerTokens(const char* source) {
+	AsmLexer L;
 	L.tokens = NULL;
 	L.line = 1;
 
@@ -34,7 +34,7 @@ Lexer_convertToAssemblerTokens(const char* source) {
 				sprintf(word, "%d", *source++);
 			}
 			source++;
-			Lexer_appendAssemblerToken(&L, word, NUMBER);
+			AsmLexer_appendAssemblerToken(&L, word, NUMBER);
 		} else if (c == '"') {
 			char* word;
 			size_t len = 0;
@@ -75,12 +75,12 @@ Lexer_convertToAssemblerTokens(const char* source) {
 			}
 			word[len] = 0;
 			source++;
-			Lexer_appendAssemblerToken(&L, word, LITERAL);
+			AsmLexer_appendAssemblerToken(&L, word, LITERAL);
 		} else if (ispunct(c) && c != '_') {
 			char word[2];
 			word[0] = c;
 			word[1] = 0;
-			Lexer_appendAssemblerToken(&L, word, PUNCT);
+			AsmLexer_appendAssemblerToken(&L, word, PUNCT);
 		} else if (isdigit(c)) {
 			//if (*source == 'x' && c == '0') source += 2;
 			char* word;
@@ -92,7 +92,7 @@ Lexer_convertToAssemblerTokens(const char* source) {
 			memcpy(word, source - 1, len + 1);
 			word[len + 1] = 0;
 			source += len;
-			Lexer_appendAssemblerToken(&L, word, NUMBER);
+			AsmLexer_appendAssemblerToken(&L, word, NUMBER);
 		} else if (isalpha(c) || c == '_') {
 			char* word;
 			size_t len = 0;
@@ -102,7 +102,7 @@ Lexer_convertToAssemblerTokens(const char* source) {
 			memcpy(word, source - 1, len + 1);
 			word[len + 1] = 0;
 			source += len;
-			Lexer_appendAssemblerToken(&L, word, IDENTIFIER);
+			AsmLexer_appendAssemblerToken(&L, word, IDENTIFIER);
 		}
 	}	
 
@@ -111,7 +111,7 @@ Lexer_convertToAssemblerTokens(const char* source) {
 }
 
 static void
-Lexer_appendAssemblerToken(Lexer* L, const char* word, AssemblerTokenType type) {
+AsmLexer_appendAssemblerToken(AsmLexer* L, const char* word, AssemblerTokenType type) {
 	AssemblerToken* token = (AssemblerToken *)malloc(sizeof(AssemblerToken));
 	token->next = NULL;
 	token->prev = NULL;
@@ -132,7 +132,7 @@ Lexer_appendAssemblerToken(Lexer* L, const char* word, AssemblerTokenType type) 
 }
 
 static void
-Lexer_printAssemblerTokens(Lexer* L) {
+AsmLexer_printAssemblerTokens(AsmLexer* L) {
 	AssemblerToken* at = L->tokens;
 	while (at) {
 		printf("%s (%s)\n", at->word, (

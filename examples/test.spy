@@ -1,13 +1,6 @@
-function x(y : real) -> real {
-
+if 10 > 50 {
+	println("this is working great!\n");
 }
 
-if 10 + 13 * 2 {
-	if square_root(42 * 13 - (12 + 11)) {
-		if x(5, 10) {
-			test(50);		
-		}
-	}
-}
 
 

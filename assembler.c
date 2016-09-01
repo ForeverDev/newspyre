@@ -115,7 +115,7 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 	const AssemblerInstruction* ins;
 	AssemblerToken* head;
 	
-	if (!(A.tokens = head = Lexer_convertToAssemblerTokens(input.contents))) goto done;
+	if (!(A.tokens = head = AsmLexer_convertToAssemblerTokens(input.contents))) goto done;
 
 	/* pass one, find all labels */
 	while (A.tokens && A.tokens->next) {

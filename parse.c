@@ -55,6 +55,7 @@ new_node(Tree* T, unsigned int type, int has_block) {
 	if (node->block) {
 		node->block->parent_node = node;
 		node->block->children = NULL;
+		node->block->locals = NULL;
 	}
 	node->parent_block = T->current_block;
 	return node;
@@ -111,6 +112,41 @@ static void
 append_to_block(Tree* T, TreeNode* node) {
 	if (!T->current_block->children) {
 		T->current_block->children = calloc(1, sizeof(TreeNode));
+	}
+	if (node->type == DECLARATION) {
+		TreeVariable* local = malloc(sizeof(TreeVariable));
+		local->identifier = node->words->token->word;
+		local->next = NULL;
+		local->modifiers = 0;
+		if (node->words->next) {
+			Token* modifier = node->words->next->token;
+			while (modifier) {
+				if (!strcmp(modifier->word, "const")) {
+					local->modifiers |= MOD_CONST; 
+				} else if (!strcmp(modifier->word, "static")) {
+					local->modifiers |= MOD_STATIC;
+				} else if (!strcmp(modifier->word, "unsigned")) {
+					local->modifiers |= MOD_UNSIGNED;
+				} else if (!strcmp(modifier->word, "signed")) {
+					local->modifiers |= MOD_SIGNED;
+				}
+				modifier = modifier->next;
+			}
+			printf("MODIFIERS: %x\n", local->modifiers);
+		}
+		/* append to variable to the list of locals */
+		if (T->current_block->locals) {
+			TreeVariable* at = T->current_block->locals;
+			while (at->next) {
+				if (!strcmp(at->identifier, local->identifier)) {
+					parse_error(T, "duplicate variable %s", local->identifier);	
+				}
+				at = at->next;
+			}	
+			at->next = local;
+		} else {
+			T->current_block->locals = local;
+		}
 	}
 	node->parent_block = T->current_block;
 	append_node(T->current_block->children, node);
@@ -474,7 +510,6 @@ generate_tree(Token* tokens) {
 					parse_statement(T);
 				}
 				break;
-			
 			case '}': jump_out(T); break;
 			default: parse_statement(T); break;
 		}

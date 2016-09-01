@@ -7,7 +7,7 @@
 
 typedef struct CompileState CompileState;
 typedef struct InstructionStack InstructionStack;
-typedef struct DefinedFunction DefinedFunction;
+typedef struct LiteralValue LiteralValue;
 
 struct InstructionStack {
 	char* instructions[12]; /* 64 is way too high but better safe */
@@ -17,17 +17,19 @@ struct InstructionStack {
 	InstructionStack* prev;
 };
 
-struct DefinedFunction {
+struct LiteralValue {
 	char* name;
-	DefinedFunction* next;	
+	LiteralValue* next;	
 };
 
 struct CompileState {
 	TreeNode* node_focus;
 	TreeBlock* root_block;
-	DefinedFunction* defined_functions;
+	LiteralValue* defined_functions;
+	LiteralValue* string_literals;
 	InstructionStack* ins_stack;
 	unsigned int label_count;
+	unsigned int literal_count;
 	unsigned int depth;
 	FILE* output;
 };	

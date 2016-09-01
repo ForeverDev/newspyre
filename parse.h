@@ -1,13 +1,21 @@
 #ifndef PARSE_H
 #define PARSE_H
 
+#include <stdint.h>
 #include "lex.h"
 
 typedef struct Tree Tree;
 typedef struct TreeNode TreeNode;
 typedef struct TreeWord TreeWord;
 typedef struct TreeBlock TreeBlock;
+typedef struct TreeVariable TreeVariable;
 typedef enum NodeType NodeType;
+
+/* instead of a nasty linked list of modifiers, just use masks */
+#define MOD_CONST (0x1 << 0)
+#define MOD_STATIC (0x1 << 1)
+#define MOD_UNSIGNED (0x1 << 2)
+#define MOD_SIGNED (0x1 << 3)
 
 enum NodeType {
 	NOTYPE,
@@ -27,6 +35,12 @@ enum NodeType {
 	ROOT
 };
 
+struct TreeVariable {
+	char* identifier;
+	uint16_t modifiers;
+	TreeVariable* next;
+};
+
 struct TreeWord {
 	Token* token;
 	struct TreeWord* next;
@@ -35,6 +49,7 @@ struct TreeWord {
 struct TreeBlock {
 	TreeNode* parent_node;
 	TreeNode* children;
+	TreeVariable* locals;
 };
 
 struct TreeNode {
