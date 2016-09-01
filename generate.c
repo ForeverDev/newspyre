@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <math.h>
 #include "generate.h"
 
 #define LABEL_FORMAT "__LABEL__%04d"
@@ -37,15 +38,30 @@ static unsigned int ts_length(ExpressionStack*);
 static void writestr(CompileState*, const char*, ...);
 static inline void writelabel(CompileState*);
 static void compile_if(CompileState*);
-static void compile_function(CompileState*);
+static void compile_function_body(CompileState*);
 static void generate_expression(CompileState*, ExpressionNode*);
-static void node_advance(CompileState*);
+static void compile_return(CompileState*);
 static ExpressionNode* compile_expression(Token*);
 static ExpressionNode* compile_function_call(Token**);
 static void push_instruction(CompileState*, const char*, ...);
 static void pop_instruction(CompileState*);
 static int function_exists(CompileState*, const char*);
 static void scan_for_calls(CompileState*, Token* expression);
+static void advance(CompileState*);
+static unsigned int count_function_var_size(CompileState*);
+
+static unsigned int
+count_function_var_size(CompileState* state) {
+	unsigned int size = 0;
+	/* TODO recursive call into the body's inner blocks to find
+	 * nested variable declarations */
+	TreeVariable* at = state->node_focus->block->locals;
+	while (at) {
+		size += at->size;
+		at = at->next;
+	}
+	return size;
+}
 
 static void
 scan_for_calls(CompileState* state, Token* expression) {
@@ -54,10 +70,6 @@ scan_for_calls(CompileState* state, Token* expression) {
 		if (at->type == TYPE_IDENTIFIER && at->next->type == TYPE_OPENPAR) {
 			if (!function_exists(state, at->word)) {
 				writestr(state, "let __CFUNC__%s \"%s\"\n", at->word, at->word);
-				/* TODO FIX MEMORY LEAK! */
-				char* save = at->word;
-				at->word = malloc(32);
-				sprintf(at->word, "__CFUNC__%s", save);
 			}
 		}
 		at = at->next;
@@ -172,7 +184,7 @@ writelabel(CompileState* state) {
 	5: ...
 */
 static void 
-node_advance(CompileState* S) {
+advance(CompileState* S) {
 	if (S->node_focus->block && !S->node_focus->block->children) {
 		pop_instruction(S);
 	}
@@ -417,18 +429,19 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 			if (at->argument) {
 				numargs++;
 				ExpressionNode* counter = at->argument;
+				/* find the number of args */
 				while (counter) {
 					if (counter->token->type == TYPE_COMMA) {
 						numargs++;
 					}
 					counter = counter->next;
 				}
-				generate_expression(S, expression->argument);	
+				generate_expression(S, at->argument);
 			}
-			if (function_exists(S, expression->func_name)) {
-				writestr(S, "call %s, %d\n", expression->func_name, numargs);
+			if (function_exists(S, at->func_name)) {
+				writestr(S, "call __FUNC__%s, %d\n", at->func_name, numargs);
 			} else {
-				writestr(S, "ccall %s\n", expression->func_name);
+				writestr(S, "ccall __CFUNC__%s, %d\n", at->func_name, numargs);
 			}
 		} else {
 			switch (at->token->type) {
@@ -441,6 +454,7 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 				case TYPE_LE: writestr(S, "ile\n"); break;
 				case TYPE_GT: writestr(S, "igt\n"); break;
 				case TYPE_GE: writestr(S, "ige\n"); break;
+				case TYPE_EQ: writestr(S, "icmp\n"); break;
 				case TYPE_COMMA: break;
 				case TYPE_STRING: 
 					writestr(S, "ipush %s\n", at->token->word); 
@@ -476,12 +490,29 @@ compile_while(CompileState* S) {
 }
 
 static void
-compile_function(CompileState* S) {
+compile_function_body(CompileState* S) {
+	if (!strcmp(S->node_focus->words->token->word, "main")) {
+		S->main_label = ++S->label_count; /* pre-increment so that the label isn't 0 */
+	}
+	unsigned int space = count_function_var_size(S);
+	unsigned int return_label;
+	writestr(S, "__FUNC__%s:\n", S->node_focus->words->token->word);
+	S->return_label = S->label_count++;
+	writestr(S, "res %d\n", space); 
+	push_instruction(S, DEF_LABEL_FORMAT, S->return_label);
+	push_instruction(S, "iret\n");
+}
+
+static void
+compile_return(CompileState* S) {
+	generate_expression(S, compile_expression(S->node_focus->words->token));
+	writestr(S, JMP_LABEL_FORMAT, S->return_label); 
 }
 
 static void
 compile_statement(CompileState* S) {
-	generate_expression(S, compile_expression(S->node_focus->words->token));
+	ExpressionNode* expression = compile_expression(S->node_focus->words->token);	
+	generate_expression(S, expression);
 }
 
 void
@@ -490,6 +521,8 @@ generate_bytecode(TreeBlock* tree, const char* output_name) {
 	S->root_block = tree;
 	S->node_focus = S->root_block->children;
 	S->label_count = 0;
+	S->main_label = 0;
+	S->return_label = 0;
 	S->literal_count = 0;
 	S->depth = 0;
 	S->output = fopen(output_name, "w");
@@ -500,7 +533,7 @@ generate_bytecode(TreeBlock* tree, const char* output_name) {
 		printf("couldn't open file for writing\n");
 		exit(1);
 	}
-	/* walk the tree once to find C functions, string literals, globals */
+	/* walk the tree once to find C functions, string literals, (globals?) */
 	while (S->node_focus) {
 		if (S->node_focus->type == FUNCTION) {
 			LiteralValue* func = malloc(sizeof(LiteralValue));
@@ -515,30 +548,45 @@ generate_bytecode(TreeBlock* tree, const char* output_name) {
 				}
 				at->next = func;
 			}
-		} else if (
+		}
+		advance(S);
+		if (!S->node_focus || S->node_focus->type == ROOT) {
+			break;
+		}	
+	}
+	
+	S->node_focus = S->root_block->children;	
+	
+	/* walk the tree again to find function calls */
+	while (S->node_focus) {
+		if (
 			S->node_focus->type == WHILE 
 			|| S->node_focus->type == IF
 			|| S->node_focus->type == STATEMENT
+			|| S->node_focus->type == RETURN
 		) {
 			scan_for_calls(S, S->node_focus->words->token);
 			scan_for_literals(S, S->node_focus->words->token);
 		}
-		node_advance(S);
+		advance(S);
 		if (!S->node_focus || S->node_focus->type == ROOT) {
 			break;
 		}	
 	}
 	S->node_focus = S->root_block->children;
 
+	writestr(S, "jmp __ENTRY_POINT__\n");
+
 	/* now generate */
 	while (S->node_focus) {
 		switch (S->node_focus->type) {
 			case IF: compile_if(S); break;	
 			case WHILE: compile_while(S); break;
-			case FUNCTION: compile_function(S); break;
+			case FUNCTION: compile_function_body(S); break;
+			case RETURN: compile_return(S); break;
 			default: compile_statement(S); break;
 		}
-		node_advance(S);
+		advance(S);
 		if (!S->node_focus || S->node_focus->type == ROOT) {
 			break;
 		}	
@@ -549,7 +597,9 @@ generate_bytecode(TreeBlock* tree, const char* output_name) {
 	
 	/* replace with something else? prevents the error that happens when
 	 * a label isn't followed by any instructions */	
+	writestr(S, "__ENTRY_POINT__:\n");
 	writestr(S, "ipush 0\n");
+	writestr(S, "call __FUNC__main, 1", S->main_label);
 
 	fclose(S->output);
 

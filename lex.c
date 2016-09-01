@@ -19,10 +19,8 @@ blank_token() {
 
 void
 append_token(Token* head, char* word, unsigned int line, unsigned int type) {
-	char* word_copy = malloc(strlen(word) + 1);
-	strcpy(word_copy, word);
 	if (head->type == 0) {
-		head->word = word_copy;
+		head->word = word;
 		head->line = line;
 		head->type = type;
 		head->next = NULL;
@@ -32,7 +30,7 @@ append_token(Token* head, char* word, unsigned int line, unsigned int type) {
 		while (head->next) {
 			head = head->next;
 		}
-		new->word = word_copy;
+		new->word = word;
 		new->line = line;
 		new->type = type;
 		new->next = NULL;
@@ -89,7 +87,6 @@ generate_tokens(const char* filename) {
 					len++;
 				}
 				contents++;
-				len--;
 			} else {
 				while (*contents && (isalnum(*contents) || *contents == '_') && *contents != ' ') {
 					contents++;
@@ -99,6 +96,9 @@ generate_tokens(const char* filename) {
 			buf = calloc(1, len + 1);
 			for (unsigned i = 0; i < contents - start; i++) {
 				buf[i] = start[i];
+			}
+			if (buf[len - 1] == '"') {
+				buf[len - 1] = 0;
 			}
 			buf[len] = 0;
 			len = 0;
@@ -116,7 +116,6 @@ generate_tokens(const char* filename) {
 				!strcmp(buf, "break") ? 10 : 
 				!strcmp(buf, "for") ? 11 : 12
 			));
-			free(buf);
 		} else if (isdigit(*contents)) {
 			start = contents;
 			/* TODO register all number formats and convert to base 10 */
@@ -126,13 +125,12 @@ generate_tokens(const char* filename) {
 			}	
 			buf = calloc(1, len + 1);
 			memcpy(buf, start, len);
-			buf[len] = 0;
 			if (!isdigit(buf[len - 1])) {
 				buf[len - 1] = 0;
 			}
+			buf[len] = 0;
 			len = 0;
 			append_token(tokens, buf, line, 13);
-			free(buf);
 		} else if (ispunct(*contents)) {
 			/* replace with strcmp? */
 			#define CHECK2(str) (*contents == str[0] && contents[1] == str[1])
@@ -179,7 +177,6 @@ generate_tokens(const char* filename) {
 			strncpy(buf, start, len);
 			buf[len] = 0;
 			append_token(tokens, buf, line, type);
-			free(buf);
 		}
 	}
 

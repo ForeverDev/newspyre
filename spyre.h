@@ -77,6 +77,8 @@ double		Spy_readFloat(SpyState*);
 void		Spy_pushString(SpyState*, const char*);
 char*		Spy_popString(SpyState*);
 
+uint8_t*	Spy_popRaw(SpyState*);
+
 void		Spy_pushC(SpyState*, const char*, uint32_t (*)(SpyState*));
 void		Spy_execute(const char*, uint32_t, int, char**);
 

@@ -118,22 +118,30 @@ append_to_block(Tree* T, TreeNode* node) {
 		local->identifier = node->words->token->word;
 		local->next = NULL;
 		local->modifiers = 0;
-		if (node->words->next) {
-			Token* modifier = node->words->next->token;
-			while (modifier) {
-				if (!strcmp(modifier->word, "const")) {
-					local->modifiers |= MOD_CONST; 
-				} else if (!strcmp(modifier->word, "static")) {
-					local->modifiers |= MOD_STATIC;
-				} else if (!strcmp(modifier->word, "unsigned")) {
-					local->modifiers |= MOD_UNSIGNED;
-				} else if (!strcmp(modifier->word, "signed")) {
-					local->modifiers |= MOD_SIGNED;
-				}
-				modifier = modifier->next;
+		/* scan for variable modifiers */
+		Token* modifier = node->words->next->token;
+		while (modifier->next) {
+			if (!strcmp(modifier->word, "const")) {
+				local->modifiers |= MOD_CONST; 
+			} else if (!strcmp(modifier->word, "static")) {
+				local->modifiers |= MOD_STATIC;
+			} else if (!strcmp(modifier->word, "unsigned")) {
+				local->modifiers |= MOD_UNSIGNED;
+			} else if (!strcmp(modifier->word, "signed")) {
+				local->modifiers |= MOD_SIGNED;
+			} else {
+				parse_error(T, "invalid variable modifier \"%s\"", modifier->word);
 			}
-			printf("MODIFIERS: %x\n", local->modifiers);
+			modifier = modifier->next;
 		}
+		/* detect the datatype of the variable */
+		local->datatype = modifier->word;
+		if (!strcmp(local->datatype, "real") || !strcmp(local->datatype, "float") || !strcmp(local->datatype, "string")) {
+			local->size = 1;
+		} else {
+			local->size = 0;
+		}
+		printf("MODIFIERS: %x\n", local->modifiers);
 		/* append to variable to the list of locals */
 		if (T->current_block->locals) {
 			TreeVariable* at = T->current_block->locals;
@@ -524,7 +532,6 @@ generate_tree(Token* tokens) {
 
 	/* TODO cleanup correctly */
 	free(T);
-
 
 	return block;
 }

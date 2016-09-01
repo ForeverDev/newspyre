@@ -72,6 +72,12 @@ Spy_saveInt(SpyState* S, uint8_t* addr, int64_t value) {
 	*(int64_t *)addr = value;
 }
 
+inline uint8_t*
+Spy_popRaw(SpyState* S) {
+	S->sp -= 8;
+	return S->sp + 8;
+}
+
 inline void
 Spy_pushPointer(SpyState* S, void* ptr) {
 	S->sp += 8;
@@ -390,6 +396,15 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	ccall:
 	{
 		uint32_t name_index = Spy_readInt32(&S);
+		uint32_t num_args = Spy_readInt32(&S);
+		int64_t* pops = malloc(num_args * 8);
+		for (int i = 0; i < num_args; i++) {
+			pops[i] = *(int64_t *)Spy_popRaw(&S);
+		}
+		for (int i = 0; i < num_args; i++) {
+			Spy_pushInt(&S, pops[i]);
+		}
+		free(pops);
 		SpyCFunction* cf = S.c_functions;
 		while (cf && strcmp(cf->identifier, (const char *)&S.memory[name_index])) cf = cf->next;
 		if (!cf) {
@@ -568,10 +583,12 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 			pops[i] = Spy_popInt(&S);
 		}
 		memcpy(&S.bp[addr*8 + 8], pops, numsave * 8);
+		free(pops);
 	}
 	goto dispatch;
 
 	ilnload:
+	goto dispatch;
 
 	done:
 	if (option_flags & SPY_DEBUG) {

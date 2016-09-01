@@ -29,7 +29,7 @@ const AssemblerInstruction instructions[0xFF] = {
 	{"JMP",		0x15, {_INT32}},
 	{"CALL",	0x16, {_INT32, _INT32}},
 	{"IRET",	0x17, {NO_OPERAND}},
-	{"CCALL",	0x18, {_INT32}},
+	{"CCALL",	0x18, {_INT32, _INT32}},
 	{"FPUSH",	0x19, {_FLOAT64}},
 	{"FADD",	0x1A, {NO_OPERAND}},
 	{"FSUB",	0x1B, {NO_OPERAND}},
@@ -64,7 +64,7 @@ const AssemblerInstruction instructions[0xFF] = {
 	{"CJZ",		0x38, {NO_OPERAND}},
 	{"CJMP",	0x39, {NO_OPERAND}},
 	{"ILNSAVE",	0x3A, {_INT32, _INT32}},
-	{"ILNLOAD",	0x3B, {_INT32, _INT32}},
+	{"ILNLOAD",	0x3B, {_INT32, _INT32}}
 };
 
 void
@@ -148,7 +148,8 @@ Assembler_generateBytecodeFile(const char* in_file_name) {
 				Assembler_appendConstant(&A, A.tokens->word, rom_size);
 				A.tokens = A.tokens->next;
 				len = strlen(A.tokens->word);
-				fwrite(A.tokens->word, len + 1, 1, tmp_output.handle);
+				fwrite(A.tokens->word, 1, len, tmp_output.handle);
+				fputc(0, tmp_output.handle);
 				rom_size += len + 1;
 			} else if ((ins = Assembler_validateInstruction(&A, A.tokens->word))) {
 				index++; /* instruction is one byte */

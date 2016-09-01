@@ -41,7 +41,7 @@ AsmLexer_convertToAssemblerTokens(const char* source) {
 			const char* at = source;
 			while (*at++ != '"') len++;
 			at--;
-			word = (char *)malloc(len + 1);
+			word = (char *)calloc(1, len + 1);
 			for (int i = 0; i < len; i++) {
 				switch (*source) {
 					case '\\':

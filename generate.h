@@ -31,6 +31,8 @@ struct CompileState {
 	unsigned int label_count;
 	unsigned int literal_count;
 	unsigned int depth;
+	unsigned int return_label;
+	unsigned int main_label;
 	FILE* output;
 };	
 

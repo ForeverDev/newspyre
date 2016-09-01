@@ -37,7 +37,9 @@ enum NodeType {
 
 struct TreeVariable {
 	char* identifier;
+	char* datatype;
 	uint16_t modifiers;
+	unsigned int size; /* in bytes */
 	TreeVariable* next;
 };
 

@@ -1,10 +1,47 @@
 let __CFUNC__println "println"
-let __STR__0000 "this is working great!\n"
-ipush 10
-ipush 50
-igt
-jz __LABEL__0000
+let __STR__0000 "THE PROGRAM PRINTED OUT:\n%s"
+let __STR__0001 "this is"
+let __STR__0002 "an example of"
+let __STR__0003 "program logic!!!"
+jmp __PROGRAM_ENTRANCE__
+__FUNC__main:
+res 0
 ipush __STR__0000
-ccall __CFUNC__println
-__LABEL__0000:
+call __FUNC__test, 0
+ccall __CFUNC__println, 2
 ipush 0
+jmp __LABEL__0001
+__LABEL__0001:
+iret
+__FUNC__test:
+res 0
+ipush 1
+ipush 5 
+icmp
+jz __LABEL__0003
+ipush __STR__0001
+jmp __LABEL__0002
+__LABEL__0003:
+ipush 5
+ipush 10 
+icmp
+jz __LABEL__0004
+ipush __STR__0002
+jmp __LABEL__0002
+__LABEL__0004:
+ipush 5
+ipush 5
+imul
+ipush 100 
+ipush 4
+idiv
+icmp
+jz __LABEL__0005
+ipush __STR__0003
+jmp __LABEL__0002
+__LABEL__0005:
+__LABEL__0002:
+iret
+__PROGRAM_ENTRANCE__:
+ipush 0
+call __FUNC__main, 1
