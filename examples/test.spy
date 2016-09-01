@@ -1,6 +1,6 @@
 function main() -> real {
 	x : real;
 	y : real;
-	println("x is %d", x + y);
+	println("x is %d", 1 << 5);
 	return 0;
 }

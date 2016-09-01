@@ -479,6 +479,8 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 				case TYPE_GT: writestr(S, "igt\n"); break;
 				case TYPE_GE: writestr(S, "ige\n"); break;
 				case TYPE_EQ: writestr(S, "icmp\n"); break;
+				case TYPE_SHR: writestr(S, "shr\n"); break;
+				case TYPE_SHL: writestr(S, "shl\n"); break;
 				case TYPE_COMMA: break;
 				case TYPE_STRING: 
 					writestr(S, "ipush %s\n", at->token->word); 

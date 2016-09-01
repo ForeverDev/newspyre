@@ -4,9 +4,9 @@ jmp __ENTRY_POINT__
 __FUNC__main:
 res 2
 ipush __STR__0000
-ilload 0
-ilload 0
-iadd
+ipush 1
+ipush 5
+shl
 ccall __CFUNC__println, 2
 ipush 0
 jmp __LABEL__0000

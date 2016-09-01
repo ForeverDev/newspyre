@@ -67,6 +67,7 @@ generate_tokens(const char* filename) {
 	unsigned int len = 0;
 
 	while (*contents) {
+		len = 0;
 		if (*contents == '\n') {
 			contents++;
 			line++;
@@ -97,11 +98,7 @@ generate_tokens(const char* filename) {
 			for (unsigned i = 0; i < contents - start; i++) {
 				buf[i] = start[i];
 			}
-			if (buf[len - 1] == '"') {
-				buf[len - 1] = 0;
-			}
 			buf[len] = 0;
-			len = 0;
 			append_token(tokens, buf, line, (
 				is_string ? 14 : 
 				!strcmp(buf, "if") ? 1 : 
@@ -124,12 +121,8 @@ generate_tokens(const char* filename) {
 				len++;
 			}	
 			buf = calloc(1, len + 1);
-			memcpy(buf, start, len);
-			if (!isdigit(buf[len - 1])) {
-				buf[len - 1] = 0;
-			}
+			strncpy(buf, start, len);
 			buf[len] = 0;
-			len = 0;
 			append_token(tokens, buf, line, 13);
 		} else if (ispunct(*contents)) {
 			/* replace with strcmp? */
