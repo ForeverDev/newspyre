@@ -1,5 +1,17 @@
 function main() -> real {
-	println("the program printed out: %d", 50 * 50 - (4 - 3));
+	println("the program printed out: %s", example_func());
 	return 0;
+}
+
+function example_func() -> string {
+	if 5 * 5 == 26 {
+		return "example A";
+	}
+	if 25 * 2 == 50 {
+		return "example B";
+	}	
+	if 25 == 5 + 5 * 4 {
+		return "example C";
+	}
 }
 
