@@ -535,6 +535,8 @@ generate_tree(Token* tokens) {
 
 	TreeBlock* block = T->root_block;
 
+	print_block(T->root_block, 0);
+
 	/* TODO cleanup correctly */
 	free(T);
 
