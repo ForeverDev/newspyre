@@ -85,6 +85,7 @@ count_function_var_size(CompileState* state) {
 static unsigned int
 count_function_args(CompileState* state) {
 	unsigned int num = 0;
+	return 0;
 }
 
 static void
