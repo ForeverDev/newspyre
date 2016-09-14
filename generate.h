@@ -24,15 +24,17 @@ struct LiteralValue {
 
 struct CompileState {
 	TreeNode* node_focus;
+	TreeNode* current_function;
 	TreeBlock* root_block;
 	LiteralValue* defined_functions;
 	LiteralValue* string_literals;
 	InstructionStack* ins_stack;
 	unsigned int label_count;
 	unsigned int literal_count;
-	unsigned int depth;
-	unsigned int return_label;
 	unsigned int main_label;
+	unsigned int depth; /* block depth */
+	unsigned int return_label; /* current return label for function exit */
+	unsigned int body_size; /* current size of function stack frame */
 	FILE* output;
 };	
 

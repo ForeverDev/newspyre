@@ -1,17 +1,9 @@
-function main() -> real {
-	println("the program printed out: %s", example_func());
-	return 0;
+func main() -> null {
+	println("result is %d", square(5));
 }
 
-function example_func() -> string {
-	if 5 * 5 == 26 {
-		return "example A";
-	}
-	if 25 * 2 == 50 {
-		return "example B";
-	}	
-	if 25 == 5 + 5 * 4 {
-		return "example C";
-	}
+func square(n : real) -> real {
+	return n * n;
 }
+
 

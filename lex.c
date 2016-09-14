@@ -105,7 +105,7 @@ generate_tokens(const char* filename) {
 				!strcmp(buf, "else") ? 2 : 
 				!strcmp(buf, "while") ? 3 :
 				!strcmp(buf, "do") ? 4 : 
-				!strcmp(buf, "function") ? 5 :
+				!strcmp(buf, "func") ? 5 :
 				!strcmp(buf, "return") ? 6 : 
 				!strcmp(buf, "switch") ? 7 : 
 				!strcmp(buf, "case") ? 8 : 

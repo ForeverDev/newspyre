@@ -21,6 +21,7 @@ static void parse_statement(Tree*);
 static void jump_out(Tree*);
 static void jump_in(Tree*, TreeBlock*);
 
+static TreeVariable* parse_variable(Tree*);
 static inline void append_token_copy(Token*, Token*);
 static inline Token* parse_expression(Tree*);
 static Token* parse_expression_count(Tree*, unsigned int, unsigned int);
@@ -30,7 +31,43 @@ static void append_to_block(Tree*, TreeNode*);
 static void append_node(TreeNode*, TreeNode*);
 static TreeNode* new_node(Tree*, unsigned int, int);
 static void append_word(TreeWord*, TreeWord*);
+static void append_var(TreeVariable*, TreeVariable*);
 static void fix_connections(TreeNode*);
+static void parse_datatype(Tree*, TreeVariable*);
+
+static void
+parse_datatype(Tree* T, TreeVariable* var) {
+	while (T->tokens 
+		&& T->tokens->type != ',' 
+		&& T->tokens->type != ')'
+		&& T->tokens->type != '{'
+	) {
+		if (!strcmp(T->tokens->word, "const")) {
+			var->modifiers |= MOD_CONST;
+		} else if (!strcmp(T->tokens->word, "static")) {
+			var->modifiers |= MOD_STATIC;
+		} else if (!strcmp(T->tokens->word, "unsigned")) {
+			var->modifiers |= MOD_UNSIGNED;
+		} else {
+			var->datatype = T->tokens->word;
+		}
+		T->tokens = T->tokens->next;	
+	}
+}
+
+static TreeVariable*
+parse_variable(Tree* T) {
+	TreeVariable* local = malloc(sizeof(TreeVariable));
+	local->identifier = T->tokens->word; 
+	local->next = NULL;
+	local->modifiers = 0;
+	local->size = 8;
+	local->offset = 0;
+	local->datatype = NULL;
+	T->tokens = T->tokens->next->next;
+	parse_datatype(T, local);
+	return local;
+}
 
 static void 
 append_word(TreeWord* head, TreeWord* word) {
@@ -40,6 +77,16 @@ append_word(TreeWord* head, TreeWord* word) {
 	}
 	at->next = word;
 	word->next = NULL;
+}
+
+static void
+append_var(TreeVariable* head, TreeVariable* var) {
+	TreeVariable* at = head;
+	while (at->next) {
+		at = at->next;
+	}
+	at->next = var;
+	var->next = NULL;
 }
 
 static TreeNode*
@@ -349,34 +396,27 @@ parse_do_while(Tree* T) {
 	3: arg0 return type
 	...
 */
+
+/* TODO MAKE A BETTER STORAGE METHOD FOR FUNCTION PARAMETERS USING TreeVariable */
 static void
 parse_function(Tree* T) {
 	/* begins on token FUNCTION */
 	T->tokens = T->tokens->next;
 	/* now on name of function */
 	TreeNode* node = new_node(T, FUNCTION, 1);
-	TreeWord* return_type = malloc(sizeof(TreeWord));
-	return_type->token = blank_token();
-	return_type->next = NULL;
+	TreeVariable* return_var_tmp = malloc(sizeof(TreeVariable));
+	return_var_tmp->next = NULL;
 	TreeWord* name = malloc(sizeof(TreeWord));
 	name->token = copy_token(T->tokens);
 	name->next = NULL;
 	node->words = name;
+	node->nargs = 0;
 	T->tokens = T->tokens->next->next;
 
 	while (T->tokens && T->tokens->type != ')') {
-		TreeWord* argument_name = malloc(sizeof(TreeWord));
-		TreeWord* argument_type = malloc(sizeof(TreeWord));
-		argument_name->token = copy_token(T->tokens);
-		argument_type->next = NULL;
-		argument_type->token = blank_token();
-		T->tokens = T->tokens->next->next;
-		while (T->tokens && T->tokens->type != ',' && T->tokens->type != ')') {
-			append_token_copy(argument_type->token, T->tokens);
-			T->tokens = T->tokens->next;	
-		}
-		append_word(return_type, argument_name);
-		append_word(argument_name, argument_type);
+		node->nargs++;
+		TreeVariable* local = parse_variable(T);
+		append_var(return_var_tmp, local);
 		if (T->tokens->type == ')') {
 			break;
 		}
@@ -384,17 +424,14 @@ parse_function(Tree* T) {
 	}
 	
 	T->tokens = T->tokens->next->next;
-	
-	while (T->tokens->type != '{') {
-		append_token_copy(return_type->token, T->tokens);
-		T->tokens = T->tokens->next;
-	}
-
+	TreeVariable* return_var = malloc(sizeof(TreeVariable));
+	parse_datatype(T, return_var);
+	return_var->identifier = NULL;
+	return_var->next = return_var_tmp->next;
+	node->variable = return_var;
 	T->tokens = T->tokens->next;
-	name->next = return_type;
 	append_to_block(T, node);
 	jump_in(T, node->block);
-
 }
 
 static void
@@ -534,8 +571,6 @@ generate_tree(Token* tokens) {
 	fix_connections(T->nodes);
 
 	TreeBlock* block = T->root_block;
-
-	print_block(T->root_block, 0);
 
 	/* TODO cleanup correctly */
 	free(T);

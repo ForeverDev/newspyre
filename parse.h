@@ -63,7 +63,8 @@ struct TreeNode {
 	TreeBlock* block;
 	TreeBlock* parent_block;
 
-	TreeVariable* variable; /* only applicable if DECLARATION */
+	TreeVariable* variable; /* only applicable if DECLARATION or FUNCTION */
+	unsigned int nargs; /* only applicable if FUNCTION */
 };
 
 struct Tree {

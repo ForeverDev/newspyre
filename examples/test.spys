@@ -1,49 +1,21 @@
 let __CFUNC__println "println"
-let __STR__0000 "the program printed out: %s"
-let __STR__0001 "example A"
-let __STR__0002 "example B"
-let __STR__0003 "example C"
+let __STR__0000 "result is %d"
 jmp __ENTRY_POINT__
 __FUNC__main:
 res 0
 ipush __STR__0000
-call __FUNC__example_func, 0
+ipush 5
+call __FUNC__square, 1
 ccall __CFUNC__println, 2
-ipush 0
-jmp __LABEL__0000
 __LABEL__0000:
 iret
-__FUNC__example_func:
+__FUNC__square:
 res 0
-ipush 5
-ipush 5
+iarg 0
+ilload 0
+ilload 0
 imul
-ipush 26
-icmp
-jz __LABEL__0002
-ipush __STR__0001
 jmp __LABEL__0001
-__LABEL__0002:
-ipush 25
-ipush 2
-imul
-ipush 50
-icmp
-jz __LABEL__0003
-ipush __STR__0002
-jmp __LABEL__0001
-__LABEL__0003:
-ipush 25
-ipush 5
-ipush 5
-ipush 4
-imul
-iadd
-icmp
-jz __LABEL__0004
-ipush __STR__0003
-jmp __LABEL__0001
-__LABEL__0004:
 __LABEL__0001:
 iret
 __ENTRY_POINT__:

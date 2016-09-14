@@ -66,6 +66,19 @@ find_variable(CompileState* S, const char* identifier) {
 		if (!block->parent_node) break;
 		block = block->parent_node->parent_block;
 	}
+	/* if reached, a local / global hasn't been found - it
+	 * must be a function argument
+	 */
+	if (S->current_function) {
+		for (TreeVariable* var = S->current_function->variable; var; var = var->next) {
+			if (!var->identifier) {
+				continue;
+			}
+			if (!strcmp(var->identifier, identifier)) {
+				return var;
+			}
+		}
+	}
 	return NULL;
 }
 
@@ -523,18 +536,24 @@ compile_while(CompileState* S) {
 
 static void
 compile_function_body(CompileState* S) {
-	unsigned int space = count_function_var_size(S);
+	unsigned int body_size = count_function_var_size(S);
 	unsigned int return_label;
 	writestr(S, "__FUNC__%s:\n", S->node_focus->words->token->word);
 	S->return_label = S->label_count++;
-	writestr(S, "res %d\n", space); 
+	S->body_size = body_size;
+	S->current_function = S->node_focus;
+	writestr(S, "res %d\n", S->body_size); 
+	for (int i = 0; i < S->node_focus->nargs; i++) {
+		writestr(S, "iarg %d\n", S->node_focus->nargs - i - 1);
+	}
 	push_instruction(S, DEF_LABEL_FORMAT, S->return_label);
 	push_instruction(S, "iret\n");
 }
 
 static void
 compile_return(CompileState* S) {
-	generate_expression(S, compile_expression(S->node_focus->words->token));
+	ExpressionNode* exp = compile_expression(S->node_focus->words->token);
+	generate_expression(S, exp);
 	writestr(S, JMP_LABEL_FORMAT, S->return_label); 
 }
 
@@ -548,6 +567,7 @@ void
 generate_bytecode(TreeBlock* tree, const char* output_name) {
 	CompileState* S = malloc(sizeof(CompileState));
 	S->root_block = tree;
+	S->current_function = NULL;
 	S->node_focus = S->root_block->children;
 	S->label_count = 0;
 	S->main_label = 0;
