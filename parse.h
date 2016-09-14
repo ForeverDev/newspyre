@@ -32,6 +32,7 @@ enum NodeType {
 	BREAK,
 	FUNCTION,
 	DECLARATION,
+	ASSIGNMENT,
 	ROOT
 };
 

@@ -10,7 +10,7 @@ typedef struct InstructionStack InstructionStack;
 typedef struct LiteralValue LiteralValue;
 
 struct InstructionStack {
-	char* instructions[12]; /* 64 is way too high but better safe */
+	char* instructions[16]; /* 16 is way too high but better safe */
 	unsigned int nins; /* number of instructions so far */
 	unsigned int depth;
 	InstructionStack* next;

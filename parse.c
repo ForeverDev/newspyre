@@ -194,11 +194,12 @@ append_to_block(Tree* T, TreeNode* node) {
 		unsigned int offset = 0;
 		if (T->current_block->locals) {
 			TreeVariable* at = T->current_block->locals;
-			while (at->next) {
+			while (at) {
 				if (!strcmp(at->identifier, local->identifier)) {
 					parse_error(T, "duplicate variable %s", local->identifier);	
 				}
 				offset++;
+				if (!at->next) break;
 				at = at->next;
 			}
 			local->offset = offset;
@@ -291,22 +292,13 @@ print_block(TreeBlock* block, unsigned int indent) {
 			node->type == CASE ? "CASE" :
 			node->type == CONTINUE ? "CONTINUE" :
 			node->type == BREAK ? "BREAK" :
+			node->type == ASSIGNMENT ? "ASSIGNMENT" :
 			node->type == FOR ? "FOR" : "????"
 		));
 		if (!word) {
 			printf(")");
 		} else {
 			printf("\n");
-		}
-		INDENT();
-		printf(" addr: %p\n", node);
-		INDENT();
-		printf(" next: %p\n", node->next);
-		INDENT();
-		printf(" parent: %p\n", node->parent_block ? node->parent_block->parent_node : 0);
-		if (node->block) {
-			INDENT();
-			printf(" first_child: %p\n", node->block->children);
 		}
 		int word_count = 0;
 		while (word && ++word_count) {
@@ -338,6 +330,26 @@ print_block(TreeBlock* block, unsigned int indent) {
 static void
 parse_statement(Tree* T) {
 	Token* expression = parse_expression(T);
+	for (Token* i = expression; i; i = i->next) {
+		if (i->type == TYPE_ASSIGN) {
+			TreeNode* node = new_node(T, ASSIGNMENT, 0);
+			/* i is currently pointing at the equals...
+			 * detatch the LHS from the RHS and assign to
+			 * node->word accordingly
+			 */
+			node->words->token = expression;
+			TreeWord* rhs = malloc(sizeof(TreeWord));
+			rhs->next = NULL;
+			rhs->token = i->next;	
+			node->words->next = rhs;
+			i->next->prev = NULL;
+			i->next = NULL;
+			i->prev->next = NULL;
+			append_to_block(T, node);
+			/* TODO fix memory leak @i */
+			return;					
+		}
+	}
 	TreeNode* node = new_node(T, STATEMENT, 0);
 	node->words->token = expression;
 	append_to_block(T, node);
@@ -429,6 +441,7 @@ parse_function(Tree* T) {
 	return_var->identifier = NULL;
 	return_var->next = return_var_tmp->next;
 	node->variable = return_var;
+	printf("DEFINE %p (%s)\n", node, node->words->token->word);
 	T->tokens = T->tokens->next;
 	append_to_block(T, node);
 	jump_in(T, node->block);

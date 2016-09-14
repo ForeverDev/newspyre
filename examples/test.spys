@@ -1,23 +1,8 @@
-let __CFUNC__println "println"
-let __STR__0000 "result is %d"
+let __CFUNC__print "print"
+let __STR__0000 "X "
+let __CFUNC__print "print"
+let __STR__0001 "\n"
 jmp __ENTRY_POINT__
-__FUNC__main:
+__FUNC__test:
 res 0
-ipush __STR__0000
-ipush 5
-call __FUNC__square, 1
-ccall __CFUNC__println, 2
-__LABEL__0000:
-iret
-__FUNC__square:
-res 0
-iarg 0
-ilload 0
-ilload 0
-imul
-jmp __LABEL__0001
-__LABEL__0001:
-iret
-__ENTRY_POINT__:
-ipush 0
-call __FUNC__main, 1
+ipush 10

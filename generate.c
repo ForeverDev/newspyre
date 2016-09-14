@@ -41,6 +41,7 @@ static void compile_if(CompileState*);
 static void compile_function_body(CompileState*);
 static void generate_expression(CompileState*, ExpressionNode*);
 static void compile_return(CompileState*);
+static void compile_assignment(CompileState*);
 static ExpressionNode* compile_expression(Token*);
 static ExpressionNode* compile_function_call(Token**);
 static void push_instruction(CompileState*, const char*, ...);
@@ -70,6 +71,7 @@ find_variable(CompileState* S, const char* identifier) {
 	 * must be a function argument
 	 */
 	if (S->current_function) {
+		printf("CURRENT %p (%s)\n", S->current_function, S->current_function->words->token->word);
 		for (TreeVariable* var = S->current_function->variable; var; var = var->next) {
 			if (!var->identifier) {
 				continue;
@@ -79,6 +81,8 @@ find_variable(CompileState* S, const char* identifier) {
 			}
 		}
 	}
+	printf("undeclared identifier %s\n", identifier);
+	exit(1);
 	return NULL;
 }
 
@@ -514,6 +518,14 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 	}
 }
 
+static void 
+compile_assignment(CompileState* S) {
+	generate_expression(S, compile_expression(S->node_focus->words->next->token));
+	/* no structs yet, should only be a single var name */
+	TreeVariable* local = find_variable(S, S->node_focus->words->token->word);
+	writestr(S, "ilsave %d\n", local->offset);
+}
+
 static void
 compile_if(CompileState* S) {
 	push_instruction(S, DEF_LABEL_FORMAT, S->label_count);
@@ -528,7 +540,8 @@ compile_while(CompileState* S) {
 	start_label = S->label_count++;
 	finish_label = S->label_count++;
 	writestr(S, DEF_LABEL_FORMAT, start_label);
-	generate_expression(S, compile_expression(S->node_focus->words->token));
+	ExpressionNode* exp = compile_expression(S->node_focus->words->token);
+	generate_expression(S, exp);
 	writestr(S, JZ_LABEL_FORMAT, finish_label);
 	push_instruction(S, JMP_LABEL_FORMAT, start_label);
 	push_instruction(S, DEF_LABEL_FORMAT, finish_label);
@@ -541,6 +554,7 @@ compile_function_body(CompileState* S) {
 	writestr(S, "__FUNC__%s:\n", S->node_focus->words->token->word);
 	S->return_label = S->label_count++;
 	S->body_size = body_size;
+	printf("NOW PARSING %p\n", S->node_focus);
 	S->current_function = S->node_focus;
 	writestr(S, "res %d\n", S->body_size); 
 	for (int i = 0; i < S->node_focus->nargs; i++) {
@@ -633,6 +647,7 @@ generate_bytecode(TreeBlock* tree, const char* output_name) {
 			case WHILE: compile_while(S); break;
 			case FUNCTION: compile_function_body(S); break;
 			case RETURN: compile_return(S); break;
+			case ASSIGNMENT: compile_assignment(S); break;
 			case DECLARATION: break;
 			default: compile_statement(S); break;
 		}

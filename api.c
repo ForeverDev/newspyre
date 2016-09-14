@@ -4,6 +4,7 @@
 
 void SpyL_initializeStandardLibrary(SpyState* S) {
 	Spy_pushC(S, "println", SpyL_println);
+	Spy_pushC(S, "print", SpyL_print);
 
 	Spy_pushC(S, "fopen", SpyL_fopen);
 	Spy_pushC(S, "fclose", SpyL_fclose);
@@ -24,6 +25,13 @@ void SpyL_initializeStandardLibrary(SpyState* S) {
 
 static uint32_t
 SpyL_println(SpyState* S) {
+	SpyL_print(S);
+	fputc('\n', stdout);
+	return 0;
+}
+
+static uint32_t
+SpyL_print(SpyState* S) {
 	const char* format = Spy_popString(S);
 	while (*format) {
 		switch (*format) {
@@ -60,7 +68,6 @@ SpyL_println(SpyState* S) {
 		}
 		format++;
 	}
-	fputc('\n', stdout);
 	return 0;
 }
 
