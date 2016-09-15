@@ -1,10 +1,11 @@
 let __CFUNC__print "print"
-let __STR__0000 "X "
-let __STR__0001 "\n"
+let __STR__0000 "%s   "
+let __STR__0001 "\n\n"
 let __CFUNC__println "println"
 let __STR__0002 "\niterative factorial of %d calculated to be: %d"
 let __STR__0003 "recursive factorial of %d calculated to be: %d\n"
 let __STR__0004 "now printing a grid of size %d x %d\n"
+let __STR__0005 "X"
 jmp __ENTRY_POINT__
 __FUNC__factorial_iteration:
 iarg 0
@@ -54,9 +55,10 @@ iret
 __FUNC__print_grid:
 iarg 0
 iarg 1
+iarg 2
 res 1
 ilload 0 ; ----> x_dimension
-ilsave 2
+ilsave 3
 __LABEL__0006: ; ----> while top
 ilload 1 ; ----> y_dimension
 ipush 0
@@ -68,7 +70,8 @@ ipush 0
 igt
 jz __LABEL__0009 ; ----> while condition jump
 ipush __STR__0000
-ccall __CFUNC__print, 1
+ilload 2 ; ----> grid_str
+ccall __CFUNC__print, 2
 ilload 0 ; ----> x_dimension
 ipush 1
 isub
@@ -81,7 +84,7 @@ ilload 1 ; ----> y_dimension
 ipush 1
 isub
 ilsave 1
-ilload 2 ; ----> start_x
+ilload 3 ; ----> start_x
 ilsave 0
 jmp __LABEL__0006 ; ----> while jump top
 __LABEL__0007: ; ----> while bottom
@@ -111,7 +114,8 @@ ilload 2 ; ----> grid_y
 ccall __CFUNC__println, 3
 ilload 1 ; ----> grid_x
 ilload 2 ; ----> grid_y
-call __FUNC__print_grid, 2
+ipush __STR__0005
+call __FUNC__print_grid, 3
 __LABEL__0010: ; ----> return label
 iret
 __ENTRY_POINT__:
