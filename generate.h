@@ -20,6 +20,7 @@ struct InstructionStack {
 struct LiteralValue {
 	char* name;
 	LiteralValue* next;	
+	LiteralValue* prev;
 	int is_c;
 };
 

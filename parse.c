@@ -99,6 +99,7 @@ new_node(Tree* T, unsigned int type, int has_block) {
 	node->next = NULL;
 	node->prev = NULL;
 	node->block = NULL;
+	node->ret = NULL;
 	if (has_block) {
 		node->block = malloc(sizeof(TreeBlock));
 		node->block->parent_node = node;
@@ -186,7 +187,7 @@ append_to_block(Tree* T, TreeNode* node) {
 		}
 		/* detect the datatype of the variable */
 		local->datatype = modifier->word;
-		if (!strcmp(local->datatype, "real") || !strcmp(local->datatype, "float") || !strcmp(local->datatype, "string")) {
+		if (!strcmp(local->datatype, "int") || !strcmp(local->datatype, "float") || !strcmp(local->datatype, "string")) {
 			local->size = 1;
 		} else {
 			local->size = 0;
@@ -423,8 +424,6 @@ parse_function(Tree* T) {
 	T->tokens = T->tokens->next;
 	/* now on name of function */
 	TreeNode* node = new_node(T, FUNCTION, 1);
-	TreeVariable* return_var_tmp = malloc(sizeof(TreeVariable));
-	return_var_tmp->next = NULL;
 	TreeWord* name = malloc(sizeof(TreeWord));
 	name->token = copy_token(T->tokens);
 	name->next = NULL;
@@ -432,11 +431,17 @@ parse_function(Tree* T) {
 	node->nargs = 0;
 	T->tokens = T->tokens->next->next;
 
+	TreeVariable* first_parameter = NULL;
+
 	while (T->tokens && T->tokens->type != ')') {
 		TreeVariable* local = parse_variable(T);
 		local->offset = T->current_offset++;
 		local->is_arg = 1;
-		append_var(return_var_tmp, local);
+		if (!first_parameter) {
+			node->block->locals = first_parameter = local;
+		} else {
+			append_var(first_parameter, local);
+		}
 		if (T->tokens->type == ')') {
 			break;
 		}
@@ -447,11 +452,11 @@ parse_function(Tree* T) {
 	T->tokens = T->tokens->next->next;
 	TreeVariable* return_var = malloc(sizeof(TreeVariable));
 	parse_datatype(T, return_var);
-	return_var->next = return_var_tmp->next;
+	node->ret = return_var;
+	return_var->next = NULL;
 	return_var->identifier = "__RETURN_TYPE__";
 	return_var->is_arg = 0;
 	node->variable = NULL;
-	node->block->locals = return_var;
 	T->tokens = T->tokens->next;
 	append_to_block(T, node);
 	jump_in(T, node->block);
@@ -595,8 +600,6 @@ generate_tree(Token* tokens) {
 	fix_connections(T->nodes);
 
 	TreeBlock* block = T->root_block;
-
-	print_block(block, 0);
 
 	/* TODO cleanup correctly */
 	free(T);

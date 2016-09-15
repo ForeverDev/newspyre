@@ -1,6 +1,6 @@
-func factorial_iteration(n : real) -> real {
-	result : real;
-	index : real;
+func factorial_iteration(n : int) -> int {
+	result : int;
+	index : int;
 
 	result = 1;
 	index = 0;
@@ -13,15 +13,15 @@ func factorial_iteration(n : real) -> real {
 	return result;
 }	
 
-func factorial_recursive(n : real) -> real {
+func factorial_recursive(n : int) -> int {
 	if n == 1 {
 		return 1;
 	}
 	return n * factorial_recursive(n - 1);
 }
 
-func print_grid(x_dimension : real, y_dimension : real, grid_str : string) -> null {
-	start_x : real;
+func print_grid(x_dimension : int, y_dimension : int, grid_str : string) -> null {
+	start_x : int;
 
 	start_x = x_dimension;
 
@@ -37,9 +37,9 @@ func print_grid(x_dimension : real, y_dimension : real, grid_str : string) -> nu
 }
 
 func main() -> null {
-	input : real;
-	grid_x : real;
-	grid_y : real;
+	input : int;
+	grid_x : int;
+	grid_y : int;
 
 	input = 5;
 	grid_x = 15;

@@ -23,6 +23,7 @@ struct ExpressionNode {
 	Token* token; /* only applicable if not is_func */
 
 	char* func_name; /* only applicable if is_func */
+	char* datatype;
 	ExpressionNode* argument; /* only applicable if is_func */
 };
 
@@ -32,6 +33,9 @@ struct ExpressionStack {
 	ExpressionStack* prev;
 };
 
+static void lv_push(LiteralValue*, char*);
+static char* lv_pop(LiteralValue*);
+static char* lv_top(LiteralValue*);
 static ExpressionNode* ts_pop(ExpressionStack*);
 static ExpressionNode* ts_top(ExpressionStack*);
 static void ts_push(ExpressionStack*, ExpressionNode*);
@@ -40,11 +44,12 @@ static void writestr(CompileState*, const char*, ...);
 static inline void writelabel(CompileState*);
 static void compile_if(CompileState*);
 static void compile_function_body(CompileState*);
+static void compile_array_index(CompileState*, Token**);
 static void generate_expression(CompileState*, ExpressionNode*);
 static void compile_return(CompileState*);
 static void compile_assignment(CompileState*);
-static ExpressionNode* compile_expression(Token*);
-static ExpressionNode* compile_function_call(Token**);
+static ExpressionNode* compile_expression(CompileState*, Token*);
+static ExpressionNode* compile_function_call(CompileState*, Token**);
 static void push_instruction(CompileState*, const char*, ...);
 static void pop_instruction(CompileState*);
 static int function_exists(CompileState*, const char*);
@@ -53,6 +58,33 @@ static void advance(CompileState*);
 static unsigned int count_function_var_size(CompileState*);
 static unsigned int count_function_args(CompileState*);
 static TreeVariable* find_variable(CompileState*, const char*);
+
+static void
+lv_push(LiteralValue* lit, char* str) {
+	if (!lit->name) {
+		lit->name = str;
+		lit->next = NULL;
+		return;
+	}
+	LiteralValue* i;
+	for (i = lit; i->next; i = i->next);
+	LiteralValue* new = malloc(sizeof(LiteralValue));
+	i->next = new;
+	new->name = str;
+	new->prev = i;
+	new->next = NULL;
+}
+
+static void
+lv_pop(LiteralValue* lit, char* str) {
+	if (!lit->name) return NULL;
+	LiteralValue* i, *prev;
+	for (i = lit; i->next; i = i->next);
+	i->prev->next = NULL;
+	char* ret = i->name;
+	free(i);
+	return ret;
+}
 
 static TreeVariable*
 find_variable(CompileState* S, const char* identifier) {
@@ -74,11 +106,11 @@ find_variable(CompileState* S, const char* identifier) {
 }
 
 static unsigned int
-count_function_var_size(CompileState* state) {
+count_function_var_size(CompileState* S) {
 	unsigned int size = 0;
 	/* TODO recursive call into the body's inner blocks to find
 	 * nested variable declarations */
-	TreeVariable* at = state->node_focus->block->locals;
+	TreeVariable* at = S->node_focus->block->locals;
 	while (at) {
 		if (!at->is_arg && strcmp(at->identifier, "__RETURN_TYPE__")) {
 			size += at->size;
@@ -89,23 +121,23 @@ count_function_var_size(CompileState* state) {
 }
 
 static unsigned int
-count_function_args(CompileState* state) {
+count_function_args(CompileState* S) {
 	unsigned int num = 0;
 	return 0;
 }
 
 static void
-scan_for_calls(CompileState* state, Token* expression) {
+scan_for_calls(CompileState* S, Token* expression) {
 	Token* at = expression;
 	while (at->next) {
 		if (at->type == TYPE_IDENTIFIER && at->next->type == TYPE_OPENPAR) {
-			if (!function_exists(state, at->word)) {
-				writestr(state, "let __CFUNC__%s \"%s\"\n", at->word, at->word);
+			if (!function_exists(S, at->word)) {
+				writestr(S, "let __CFUNC__%s \"%s\"\n", at->word, at->word);
 				LiteralValue* used_mark = malloc(sizeof(LiteralValue));
 				used_mark->name = at->word;
 				used_mark->next = NULL;
 				used_mark->is_c = 1;
-				LiteralValue* head = state->defined_functions;
+				LiteralValue* head = S->defined_functions;
 				while (head->next) head = head->next;
 				head->next = used_mark;
 			}
@@ -115,24 +147,24 @@ scan_for_calls(CompileState* state, Token* expression) {
 }
 
 static void
-scan_for_literals(CompileState* state, Token* expression) {
+scan_for_literals(CompileState* S, Token* expression) {
 	Token* at = expression;
 	while (at) {
 		if (at->type == TYPE_STRING) {
 			/* TODO don't redefine literals that already exist */
-			writestr(state, "let __STR__%04d \"%s\"\n", state->literal_count, at->word); 
+			writestr(S, "let __STR__%04d \"%s\"\n", S->literal_count, at->word); 
 			/* TODO FIX MEMORY LEAK! */
 			at->word = malloc(32);
-			sprintf(at->word, "__STR__%04d", state->literal_count); 
-			state->literal_count++;
+			sprintf(at->word, "__STR__%04d", S->literal_count); 
+			S->literal_count++;
 		}
 		at = at->next;
 	}
 }
 
 static int
-function_exists(CompileState* state, const char* name) {
-	LiteralValue* func = state->defined_functions;
+function_exists(CompileState* S, const char* name) {
+	LiteralValue* func = S->defined_functions;
 	while (func) {
 		if (!strcmp(func->name, name)) {
 			return func->is_c ? 2 : 1;
@@ -143,8 +175,8 @@ function_exists(CompileState* state, const char* name) {
 }
 
 static void
-push_instruction(CompileState* state, const char* instruction, ...) {
-	InstructionStack* at = state->ins_stack;
+push_instruction(CompileState* S, const char* instruction, ...) {
+	InstructionStack* at = S->ins_stack;
 	va_list list;
 	va_start(list, instruction);
 	if (!at) {
@@ -152,16 +184,16 @@ push_instruction(CompileState* state, const char* instruction, ...) {
 		stack->instructions[0] = malloc(64);
 		vsprintf(stack->instructions[0], instruction, list);
 		stack->nins = 1;
-		stack->depth = state->depth;
+		stack->depth = S->depth;
 		stack->next = NULL;
 		stack->prev = NULL;
-		state->ins_stack = stack;
+		S->ins_stack = stack;
 	} else {
 		while (at->next) {
 			at = at->next;
 		}
 		/* append to this stack */
-		if (at->depth == state->depth) {
+		if (at->depth == S->depth) {
 			if (!at->instructions[at->nins]) {
 				at->instructions[at->nins] = malloc(64);
 			}	
@@ -172,7 +204,7 @@ push_instruction(CompileState* state, const char* instruction, ...) {
 			stack->instructions[0] = malloc(64);
 			vsprintf(stack->instructions[0], instruction, list);
 			stack->nins = 1;
-			stack->depth = state->depth;
+			stack->depth = S->depth;
 			stack->next = NULL;
 			stack->prev = at;
 			at->next = stack;
@@ -182,35 +214,35 @@ push_instruction(CompileState* state, const char* instruction, ...) {
 }
 
 static void
-pop_instruction(CompileState* state) {
-	if (!state->ins_stack) return;
-	InstructionStack* at = state->ins_stack;
+pop_instruction(CompileState* S) {
+	if (!S->ins_stack) return;
+	InstructionStack* at = S->ins_stack;
 	while (at->next) {
 		at = at->next;
 	}
 	for (int i = 0; i < at->nins; i++) {
-		writestr(state, at->instructions[i]);	
+		writestr(S, at->instructions[i]);	
 		free(at->instructions[i]);
 	}
 	if (at->prev) {
 		at->prev->next = NULL;
 	} else {
-		state->ins_stack = NULL;
+		S->ins_stack = NULL;
 	}
 	free(at);
 }
 
 static void
-writestr(CompileState* state, const char* format, ...) {
+writestr(CompileState* S, const char* format, ...) {
 	va_list list;
 	va_start(list, format);
-	vfprintf(state->output, format, list);
+	vfprintf(S->output, format, list);
 	va_end(list);
 }
 
 static inline void
-writelabel(CompileState* state) {
-	writestr(state, DEF_LABEL_FORMAT, state->label_count++);
+writelabel(CompileState* S) {
+	writestr(S, DEF_LABEL_FORMAT, S->label_count++);
 }
 
 /* RETURN TYPES
@@ -308,15 +340,36 @@ ts_length(ExpressionStack* stack) {
 	return count;
 }
 
+static void
+compile_array_index(CompileState* S, Token** expression) {
+}
+
 static ExpressionNode*
-compile_function_call(Token** expression) {
+compile_function_call(CompileState* S, Token** expression) {
 	
 	/* starts on name of function */
 	Token* at = *expression;
 	Token* arg_start = at;
 
+	/* find the function declaration */
+	char* datatype = NULL;
+	for (TreeNode* i = S->root_block->children; i; i = i->next) {
+		if (i->type == FUNCTION && i->ret) {
+			if (!strcmp(i->words->token->word, at->word)) {
+				datatype = i->ret->datatype;
+			}
+		}
+	}		
+	/* this is TERRIBLE, but for the time being, assume it is
+	 * an integer that is returned from the function
+	 */
+	if (!datatype) {
+		datatype = "int";
+	}
+
 	/* expects to be on the first token of the arguments */
 	ExpressionNode* node = malloc(sizeof(ExpressionNode));
+	node->datatype = datatype;
 	node->next = NULL;
 	node->is_func = 1;
 	node->func_name = at->word;
@@ -354,7 +407,7 @@ compile_function_call(Token** expression) {
 	end->next = NULL; /* detach from the list for now */
 	*expression = end;
 	
-	ExpressionNode* compiled = compile_expression(arg_start);	
+	ExpressionNode* compiled = compile_expression(S, arg_start);	
 	ExpressionNode* counter = compiled;
 	while (counter) {
 		counter = counter->next;
@@ -368,7 +421,7 @@ compile_function_call(Token** expression) {
 
 /* FIXME remove operator and postfix memory leak */
 static ExpressionNode*
-compile_expression(Token* expression) {
+compile_expression(CompileState* S, Token* expression) {
 	/* now to apply shunting yard to the linked list of tokens
 
 	   these token stacks are used only to rearrange the tokens
@@ -403,15 +456,26 @@ compile_expression(Token* expression) {
 
 	while (at) {
 		if (at->next && at->type == TYPE_IDENTIFIER && at->next->type == TYPE_OPENPAR) {
-			ExpressionNode* node = compile_function_call(&at); 
+			ExpressionNode* node = compile_function_call(S, &at); 
+			if (at->type == TYPE_IDENTIFIER) {
+				node->datatype = find_variable(S, at->word);
+			} else {
+				node->datatype = "__NA__";
+			}
 			ts_push(postfix, node);
 		} else if (at->type == TYPE_IDENTIFIER || at->type == TYPE_NUMBER || at->type == TYPE_STRING) {
 			ExpressionNode* node = calloc(1, sizeof(ExpressionNode));
 			node->token = at;
+			node->datatype = (
+				at->datatype == TYPE_IDENTIFIER ? find_variable(S, at->word)->datatype :
+				at->datatype == TYPE_NUMBER ? "int" :
+				at->datatype == TYPE_STRING ? "string" : "__NA__"
+			);
 			ts_push(postfix, node);
 		} else if (at->type == TYPE_OPENPAR) {
 			ExpressionNode* node = calloc(1, sizeof(ExpressionNode));
 			node->token = at;
+			node->datatype = "__NA__";
 			ts_push(operators, node);
 		} else if (op_pres[at->type]) {
 			while (ts_length(operators) > 0 
@@ -422,6 +486,7 @@ compile_expression(Token* expression) {
 			}
 			ExpressionNode* node = calloc(1, sizeof(ExpressionNode));
 			node->token = at;
+			node->datatype = "__NA__";
 			ts_push(operators, node);
 		} else if (at->type == TYPE_CLOSEPAR) {
 			while (ts_length(operators) > 0 && ts_top(operators)->token->type != TYPE_OPENPAR) {
@@ -460,6 +525,7 @@ compile_expression(Token* expression) {
 static void
 generate_expression(CompileState* S, ExpressionNode* expression) {
 	ExpressionNode* at = expression;
+	LiteralValue* types = malloc(sizeof(LiteralValue));
 	while (at) {
 		if (at->is_func) {
 			/* args pushed in foward order, must be reverse popped by callee */
@@ -484,20 +550,24 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 			}
 		} else {
 			switch (at->token->type) {
-				case TYPE_NUMBER: writestr(S, "ipush %s\n", at->token->word); break;
-				case TYPE_PLUS: writestr(S, "iadd\n"); break;
-				case TYPE_HYPHON: writestr(S, "isub\n"); break;
-				case TYPE_ASTER: writestr(S, "imul\n"); break;
-				case TYPE_FORSLASH: writestr(S, "idiv\n"); break;
-				case TYPE_LT: writestr(S, "ilt\n"); break;
-				case TYPE_LE: writestr(S, "ile\n"); break;
-				case TYPE_GT: writestr(S, "igt\n"); break;
-				case TYPE_GE: writestr(S, "ige\n"); break;
-				case TYPE_EQ: writestr(S, "icmp\n"); break;
-				case TYPE_SHR: writestr(S, "shr\n"); break;
-				case TYPE_SHL: writestr(S, "shl\n"); break;
+				case TYPE_PLUS: writestr(S, "iadd\n"); goto typecheck;
+				case TYPE_HYPHON: writestr(S, "isub\n"); goto typecheck;
+				case TYPE_ASTER: writestr(S, "imul\n"); goto typecheck;
+				case TYPE_FORSLASH: writestr(S, "idiv\n"); goto typecheck;
+				case TYPE_LT: writestr(S, "ilt\n"); goto typecheck;
+				case TYPE_LE: writestr(S, "ile\n"); goto typecheck;
+				case TYPE_GT: writestr(S, "igt\n"); goto typecheck;
+				case TYPE_GE: writestr(S, "ige\n"); goto typecheck;
+				case TYPE_EQ: writestr(S, "icmp\n"); goto typecheck;
+				case TYPE_SHR: writestr(S, "shr\n"); goto typecheck;
+				case TYPE_SHL: writestr(S, "shl\n"); goto typecheck;
 				case TYPE_COMMA: break;
+				case TYPE_NUMBER: 
+					lv_push(types, "int");
+					writestr(S, "ipush %s\n", at->token->word); 
+					break;
 				case TYPE_STRING: 
+					lv_push(types, "string");
 					writestr(S, "ipush %s\n", at->token->word); 
 					break;
 				case TYPE_ASSIGN: {
@@ -506,11 +576,16 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 				}
 				case TYPE_IDENTIFIER: {
 					TreeVariable* var = find_variable(S, at->token->word);
+					lv_push(types, var->datatype);
 					writestr(S, "ilload %d", var->offset);
 					writestr(S, COMMENT("%s"), var->identifier);
 					break;
 				}
 			}
+			goto typecheck_done;
+			typecheck:
+
+			typecheck_done:
 		}
 		at = at->next;
 	}
@@ -518,7 +593,7 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 
 static void 
 compile_assignment(CompileState* S) {
-	generate_expression(S, compile_expression(S->node_focus->words->next->token));
+	generate_expression(S, compile_expression(S, S->node_focus->words->next->token));
 	/* no structs yet, should only be a single var name */
 	TreeVariable* local = find_variable(S, S->node_focus->words->token->word);
 	writestr(S, "ilsave %d\n", local->offset);
@@ -528,7 +603,7 @@ static void
 compile_if(CompileState* S) {
 	push_instruction(S, DEF_LABEL_FORMAT, S->label_count);
 	push_instruction(S, " ; if bottom\n");
-	generate_expression(S, compile_expression(S->node_focus->words->token));
+	generate_expression(S, compile_expression(S, S->node_focus->words->token));
 	writestr(S, JZ_LABEL_FORMAT, S->label_count);
 	writestr(S, COMMENT("if condition jump"));
 	S->label_count++;
@@ -541,7 +616,7 @@ compile_while(CompileState* S) {
 	finish_label = S->label_count++;
 	writestr(S, DEF_LABEL_FORMAT, start_label);
 	writestr(S, COMMENT("while top"));
-	ExpressionNode* exp = compile_expression(S->node_focus->words->token);
+	ExpressionNode* exp = compile_expression(S, S->node_focus->words->token);
 	generate_expression(S, exp);
 	writestr(S, JZ_LABEL_FORMAT, finish_label);
 	writestr(S, COMMENT("while condition jump"));
@@ -572,15 +647,15 @@ compile_function_body(CompileState* S) {
 
 static void
 compile_return(CompileState* S) {
-	ExpressionNode* exp = compile_expression(S->node_focus->words->token);
+	ExpressionNode* exp = compile_expression(S, S->node_focus->words->token);
 	generate_expression(S, exp);
 	writestr(S, JMP_LABEL_FORMAT, S->return_label); 
 	writestr(S, COMMENT("return from %s"), S->current_function->words->token->word);
 }
 
 static void
-compile_statement(CompileState* S) {
-	ExpressionNode* expression = compile_expression(S->node_focus->words->token);	
+compile_Sment(CompileState* S) {
+	ExpressionNode* expression = compile_expression(S, S->node_focus->words->token);
 	generate_expression(S, expression);
 }
 
@@ -657,7 +732,7 @@ generate_bytecode(TreeBlock* tree, const char* output_name) {
 			case RETURN: compile_return(S); break;
 			case ASSIGNMENT: compile_assignment(S); break;
 			case DECLARATION: break;
-			default: compile_statement(S); break;
+			default: compile_Sment(S); break;
 		}
 		advance(S);
 		if (!S->node_focus || S->node_focus->type == ROOT) {
