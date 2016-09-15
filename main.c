@@ -6,7 +6,7 @@
 #include "generate.h"
 
 int main(int argc, char** argv) {
-	
+
 	if (argc <= 1) return printf("expected file name\n");
 
 	char* args[] = {"examples/test.spy"};
