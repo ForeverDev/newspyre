@@ -75,8 +75,8 @@ lv_push(LiteralValue* lit, char* str) {
 	new->next = NULL;
 }
 
-static void
-lv_pop(LiteralValue* lit, char* str) {
+static char*
+lv_pop(LiteralValue* lit) {
 	if (!lit->name) return NULL;
 	LiteralValue* i, *prev;
 	for (i = lit; i->next; i = i->next);
@@ -458,7 +458,7 @@ compile_expression(CompileState* S, Token* expression) {
 		if (at->next && at->type == TYPE_IDENTIFIER && at->next->type == TYPE_OPENPAR) {
 			ExpressionNode* node = compile_function_call(S, &at); 
 			if (at->type == TYPE_IDENTIFIER) {
-				node->datatype = find_variable(S, at->word);
+				node->datatype = find_variable(S, at->word)->datatype;
 			} else {
 				node->datatype = "__NA__";
 			}
@@ -467,9 +467,9 @@ compile_expression(CompileState* S, Token* expression) {
 			ExpressionNode* node = calloc(1, sizeof(ExpressionNode));
 			node->token = at;
 			node->datatype = (
-				at->datatype == TYPE_IDENTIFIER ? find_variable(S, at->word)->datatype :
-				at->datatype == TYPE_NUMBER ? "int" :
-				at->datatype == TYPE_STRING ? "string" : "__NA__"
+				at->type == TYPE_IDENTIFIER ? find_variable(S, at->word)->datatype :
+				at->type == TYPE_NUMBER ? "int" :
+				at->type == TYPE_STRING ? "string" : "__NA__"
 			);
 			ts_push(postfix, node);
 		} else if (at->type == TYPE_OPENPAR) {
@@ -586,6 +586,7 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 			typecheck:
 
 			typecheck_done:
+			;
 		}
 		at = at->next;
 	}
