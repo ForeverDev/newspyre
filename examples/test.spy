@@ -20,13 +20,31 @@ func factorial_recursive(n : real) -> real {
 	return n * factorial_recursive(n - 1);
 }
 
-func main() -> null {
-	value : real;
+func print_grid(x_dimension : real, y_dimension : real) -> null {
+	start_x : real;
 
-	value = 5;
+	start_x = x_dimension;
+
+	while y_dimension > 0 {
+		while x_dimension > 0 {
+			print("X ");
+			x_dimension = x_dimension - 1;
+		}
+		print("\n");
+		y_dimension = y_dimension - 1;
+		x_dimension = start_x;
+	}
+}
+
+func main() -> null {
+	input : real;
+
+	input = 5;
 	
-	println("iterative factorial of %d calculated to be: %d", value, factorial_iteration(value));
-	println("recursive factorial of %d calculated to be: %d", value, factorial_recursive(value));
+	println("iterative factorial of %d calculated to be: %d", input, factorial_iteration(input));
+	println("recursive factorial of %d calculated to be: %d", input, factorial_recursive(input));
+
+	print_grid(5, 10);
 }
 
 

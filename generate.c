@@ -22,7 +22,7 @@ struct ExpressionNode {
 
 	Token* token; /* only applicable if not is_func */
 
-	const char* func_name; /* only applicable if is_func */
+	char* func_name; /* only applicable if is_func */
 	ExpressionNode* argument; /* only applicable if is_func */
 };
 
@@ -104,6 +104,7 @@ scan_for_calls(CompileState* state, Token* expression) {
 				LiteralValue* used_mark = malloc(sizeof(LiteralValue));
 				used_mark->name = at->word;
 				used_mark->next = NULL;
+				used_mark->is_c = 1;
 				LiteralValue* head = state->defined_functions;
 				while (head->next) head = head->next;
 				head->next = used_mark;
@@ -134,7 +135,7 @@ function_exists(CompileState* state, const char* name) {
 	LiteralValue* func = state->defined_functions;
 	while (func) {
 		if (!strcmp(func->name, name)) {
-			return 1;
+			return func->is_c ? 2 : 1;
 		}
 		func = func->next;
 	}
@@ -475,9 +476,10 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 				}
 				generate_expression(S, at->argument);
 			}
-			if (function_exists(S, at->func_name)) {
+			int result_func = function_exists(S, at->func_name);
+			if (result_func == 1) {
 				writestr(S, "call __FUNC__%s, %d\n", at->func_name, numargs);
-			} else {
+			} else if (result_func == 2) {
 				writestr(S, "ccall __CFUNC__%s, %d\n", at->func_name, numargs);
 			}
 		} else {
@@ -573,6 +575,7 @@ compile_return(CompileState* S) {
 	ExpressionNode* exp = compile_expression(S->node_focus->words->token);
 	generate_expression(S, exp);
 	writestr(S, JMP_LABEL_FORMAT, S->return_label); 
+	writestr(S, COMMENT("return from %s"), S->current_function->words->token->word);
 }
 
 static void
@@ -604,6 +607,7 @@ generate_bytecode(TreeBlock* tree, const char* output_name) {
 	while (S->node_focus) {
 		if (S->node_focus->type == FUNCTION) {
 			LiteralValue* func = malloc(sizeof(LiteralValue));
+			func->is_c = 0;
 			func->name = S->node_focus->words->token->word;
 			func->next = NULL;
 			if (!S->defined_functions) {
