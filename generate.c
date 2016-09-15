@@ -6,10 +6,11 @@
 #include "generate.h"
 
 #define LABEL_FORMAT "__LABEL__%04d"
-#define DEF_LABEL_FORMAT "__LABEL__%04d:\n"
-#define JMP_LABEL_FORMAT "jmp " LABEL_FORMAT "\n"
-#define JNZ_LABEL_FORMAT "jnz " LABEL_FORMAT "\n"
-#define JZ_LABEL_FORMAT "jz " LABEL_FORMAT "\n"
+#define DEF_LABEL_FORMAT "__LABEL__%04d:"
+#define JMP_LABEL_FORMAT "jmp " LABEL_FORMAT
+#define JNZ_LABEL_FORMAT "jnz " LABEL_FORMAT
+#define JZ_LABEL_FORMAT "jz " LABEL_FORMAT
+#define COMMENT(s) " ; ----> " s "\n"
 
 typedef struct ExpressionNode ExpressionNode;
 typedef struct ExpressionStack ExpressionStack;
@@ -67,21 +68,7 @@ find_variable(CompileState* S, const char* identifier) {
 		if (!block->parent_node) break;
 		block = block->parent_node->parent_block;
 	}
-	/* if reached, a local / global hasn't been found - it
-	 * must be a function argument
-	 */
-	if (S->current_function) {
-		printf("CURRENT %p (%s)\n", S->current_function, S->current_function->words->token->word);
-		for (TreeVariable* var = S->current_function->variable; var; var = var->next) {
-			if (!var->identifier) {
-				continue;
-			}
-			if (!strcmp(var->identifier, identifier)) {
-				return var;
-			}
-		}
-	}
-	printf("undeclared identifier %s\n", identifier);
+	printf("undeclared identifier %s in function %p\n", identifier, S->current_function);
 	exit(1);
 	return NULL;
 }
@@ -93,7 +80,9 @@ count_function_var_size(CompileState* state) {
 	 * nested variable declarations */
 	TreeVariable* at = state->node_focus->block->locals;
 	while (at) {
-		size += at->size;
+		if (!at->is_arg && strcmp(at->identifier, "__RETURN_TYPE__")) {
+			size += at->size;
+		}
 		at = at->next;
 	}
 	return size;
@@ -112,6 +101,12 @@ scan_for_calls(CompileState* state, Token* expression) {
 		if (at->type == TYPE_IDENTIFIER && at->next->type == TYPE_OPENPAR) {
 			if (!function_exists(state, at->word)) {
 				writestr(state, "let __CFUNC__%s \"%s\"\n", at->word, at->word);
+				LiteralValue* used_mark = malloc(sizeof(LiteralValue));
+				used_mark->name = at->word;
+				used_mark->next = NULL;
+				LiteralValue* head = state->defined_functions;
+				while (head->next) head = head->next;
+				head->next = used_mark;
 			}
 		}
 		at = at->next;
@@ -509,7 +504,8 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 				}
 				case TYPE_IDENTIFIER: {
 					TreeVariable* var = find_variable(S, at->token->word);
-					writestr(S, "ilload %d\n", var->offset);
+					writestr(S, "ilload %d", var->offset);
+					writestr(S, COMMENT("%s"), var->identifier);
 					break;
 				}
 			}
@@ -529,8 +525,10 @@ compile_assignment(CompileState* S) {
 static void
 compile_if(CompileState* S) {
 	push_instruction(S, DEF_LABEL_FORMAT, S->label_count);
+	push_instruction(S, " ; if bottom\n");
 	generate_expression(S, compile_expression(S->node_focus->words->token));
 	writestr(S, JZ_LABEL_FORMAT, S->label_count);
+	writestr(S, COMMENT("if condition jump"));
 	S->label_count++;
 }
 
@@ -540,11 +538,15 @@ compile_while(CompileState* S) {
 	start_label = S->label_count++;
 	finish_label = S->label_count++;
 	writestr(S, DEF_LABEL_FORMAT, start_label);
+	writestr(S, COMMENT("while top"));
 	ExpressionNode* exp = compile_expression(S->node_focus->words->token);
 	generate_expression(S, exp);
 	writestr(S, JZ_LABEL_FORMAT, finish_label);
+	writestr(S, COMMENT("while condition jump"));
 	push_instruction(S, JMP_LABEL_FORMAT, start_label);
+	push_instruction(S, COMMENT("while jump top"));
 	push_instruction(S, DEF_LABEL_FORMAT, finish_label);
+	push_instruction(S, COMMENT("while bottom"));
 }
 
 static void
@@ -554,13 +556,15 @@ compile_function_body(CompileState* S) {
 	writestr(S, "__FUNC__%s:\n", S->node_focus->words->token->word);
 	S->return_label = S->label_count++;
 	S->body_size = body_size;
-	printf("NOW PARSING %p\n", S->node_focus);
 	S->current_function = S->node_focus;
-	writestr(S, "res %d\n", S->body_size); 
-	for (int i = 0; i < S->node_focus->nargs; i++) {
-		writestr(S, "iarg %d\n", S->node_focus->nargs - i - 1);
+	for (TreeVariable* i = S->node_focus->block->locals; i; i = i->next) {
+		if (i->is_arg) {
+			writestr(S, "iarg %d\n", i->offset);
+		}
 	}
+	writestr(S, "res %d\n", S->body_size); 
 	push_instruction(S, DEF_LABEL_FORMAT, S->return_label);
+	push_instruction(S, COMMENT("return label"));
 	push_instruction(S, "iret\n");
 }
 
@@ -663,8 +667,7 @@ generate_bytecode(TreeBlock* tree, const char* output_name) {
 	/* replace with something else? prevents the error that happens when
 	 * a label isn't followed by any instructions */	
 	writestr(S, "__ENTRY_POINT__:\n");
-	writestr(S, "ipush 0\n");
-	writestr(S, "call __FUNC__main, 1", S->main_label);
+	writestr(S, "call __FUNC__main, 0", S->main_label);
 
 	fclose(S->output);
 

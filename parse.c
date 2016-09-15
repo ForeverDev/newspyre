@@ -61,7 +61,7 @@ parse_variable(Tree* T) {
 	local->identifier = T->tokens->word; 
 	local->next = NULL;
 	local->modifiers = 0;
-	local->size = 8;
+	local->size = 1;
 	local->offset = 0;
 	local->datatype = NULL;
 	T->tokens = T->tokens->next->next;
@@ -167,6 +167,7 @@ append_to_block(Tree* T, TreeNode* node) {
 		local->next = NULL;
 		local->modifiers = 0;
 		local->offset = 0;
+		local->is_arg = 0;
 		/* scan for variable modifiers */
 		Token* modifier = node->words->next->token;
 		while (modifier->next) {
@@ -191,21 +192,23 @@ append_to_block(Tree* T, TreeNode* node) {
 			local->size = 0;
 		}
 		/* append to variable to the list of locals */
-		unsigned int offset = 0;
+		local->offset = T->current_offset++;
 		if (T->current_block->locals) {
 			TreeVariable* at = T->current_block->locals;
 			while (at) {
+				if (!at->identifier) {
+					if (!at->next) break;
+					at = at->next;
+					continue;
+				}
 				if (!strcmp(at->identifier, local->identifier)) {
 					parse_error(T, "duplicate variable %s", local->identifier);	
 				}
-				offset++;
 				if (!at->next) break;
 				at = at->next;
 			}
-			local->offset = offset;
 			at->next = local;
 		} else {
-			local->offset = 0;
 			T->current_block->locals = local;
 		}
 	}
@@ -295,6 +298,9 @@ print_block(TreeBlock* block, unsigned int indent) {
 			node->type == ASSIGNMENT ? "ASSIGNMENT" :
 			node->type == FOR ? "FOR" : "????"
 		));
+		printf("\n");
+		INDENT();
+		printf(" addr: %p", node);
 		if (!word) {
 			printf(")");
 		} else {
@@ -412,6 +418,7 @@ parse_do_while(Tree* T) {
 /* TODO MAKE A BETTER STORAGE METHOD FOR FUNCTION PARAMETERS USING TreeVariable */
 static void
 parse_function(Tree* T) {
+	T->current_offset = 0;
 	/* begins on token FUNCTION */
 	T->tokens = T->tokens->next;
 	/* now on name of function */
@@ -426,22 +433,25 @@ parse_function(Tree* T) {
 	T->tokens = T->tokens->next->next;
 
 	while (T->tokens && T->tokens->type != ')') {
-		node->nargs++;
 		TreeVariable* local = parse_variable(T);
+		local->offset = T->current_offset++;
+		local->is_arg = 1;
 		append_var(return_var_tmp, local);
 		if (T->tokens->type == ')') {
 			break;
 		}
 		T->tokens = T->tokens->next;
+		node->nargs++;
 	}
 	
 	T->tokens = T->tokens->next->next;
 	TreeVariable* return_var = malloc(sizeof(TreeVariable));
 	parse_datatype(T, return_var);
-	return_var->identifier = NULL;
 	return_var->next = return_var_tmp->next;
-	node->variable = return_var;
-	printf("DEFINE %p (%s)\n", node, node->words->token->word);
+	return_var->identifier = "__RETURN_TYPE__";
+	return_var->is_arg = 0;
+	node->variable = NULL;
+	node->block->locals = return_var;
 	T->tokens = T->tokens->next;
 	append_to_block(T, node);
 	jump_in(T, node->block);
@@ -541,6 +551,7 @@ fix_connections(TreeNode* node) {
 TreeBlock*
 generate_tree(Token* tokens) {
 	Tree* T = malloc(sizeof(Tree));
+	T->current_offset = 0;
 	T->tokens = tokens;
 	T->nodes = malloc(sizeof(TreeNode));
 	T->nodes->type = ROOT;
@@ -584,6 +595,8 @@ generate_tree(Token* tokens) {
 	fix_connections(T->nodes);
 
 	TreeBlock* block = T->root_block;
+
+	print_block(block, 0);
 
 	/* TODO cleanup correctly */
 	free(T);

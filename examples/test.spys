@@ -1,8 +1,64 @@
-let __CFUNC__print "print"
-let __STR__0000 "X "
-let __CFUNC__print "print"
-let __STR__0001 "\n"
+let __CFUNC__println "println"
+let __STR__0000 "iterative factorial of %d calculated to be: %d"
+let __STR__0001 "recursive factorial of %d calculated to be: %d"
 jmp __ENTRY_POINT__
-__FUNC__test:
+__FUNC__factorial_iteration:
+iarg 0
+res 2
+ipush 1
+ilsave 1
+ipush 0
+ilsave 2
+__LABEL__0001: ; ----> while top
+ilload 0 ; ----> n
+ipush 1
+igt
+jz __LABEL__0002 ; ----> while condition jump
+ilload 1 ; ----> result
+ilload 0 ; ----> n
+imul
+ilsave 1
+ilload 0 ; ----> n
+ipush 1
+isub
+ilsave 0
+jmp __LABEL__0001 ; ----> while jump top
+__LABEL__0002: ; ----> while bottom
+ilload 1 ; ----> result
+jmp __LABEL__0000__LABEL__0000: ; ----> return label
+iret
+__FUNC__factorial_recursive:
+iarg 0
 res 0
-ipush 10
+ilload 0 ; ----> n
+ipush 1
+icmp
+jz __LABEL__0004 ; ----> if condition jump
+ipush 1
+jmp __LABEL__0003__LABEL__0004: ; if bottom
+ilload 0 ; ----> n
+ilload 0 ; ----> n
+ipush 1
+isub
+call __FUNC__factorial_recursive, 1
+imul
+jmp __LABEL__0003__LABEL__0003: ; ----> return label
+iret
+__FUNC__main:
+res 1
+ipush 5
+ilsave 0
+ipush __STR__0000
+ilload 0 ; ----> value
+ilload 0 ; ----> value
+call __FUNC__factorial_iteration, 1
+call __FUNC__println, 3
+ipush __STR__0001
+ilload 0 ; ----> value
+ilload 0 ; ----> value
+call __FUNC__factorial_recursive, 1
+call __FUNC__println, 3
+__LABEL__0005: ; ----> return label
+iret
+__ENTRY_POINT__:
+call __FUNC__main, 0

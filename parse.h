@@ -42,6 +42,7 @@ struct TreeVariable {
 	uint16_t modifiers;
 	unsigned int size; /* in bytes */
 	unsigned int offset;
+	int is_arg;
 	TreeVariable* next;
 };
 
@@ -73,6 +74,7 @@ struct Tree {
 	TreeBlock* current_block;
 	TreeBlock* root_block;
 	Token* tokens;
+	unsigned int current_offset;
 };
 
 TreeBlock* generate_tree(Token*);
