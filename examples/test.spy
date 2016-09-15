@@ -38,13 +38,18 @@ func print_grid(x_dimension : real, y_dimension : real) -> null {
 
 func main() -> null {
 	input : real;
+	grid_x : real;
+	grid_y : real;
 
 	input = 5;
+	grid_x = 15;
+	grid_y = 6;
 	
-	println("iterative factorial of %d calculated to be: %d", input, factorial_iteration(input));
-	println("recursive factorial of %d calculated to be: %d", input, factorial_recursive(input));
-
-	print_grid(5, 10);
+	println("\niterative factorial of %d calculated to be: %d", input, factorial_iteration(input));
+	println("recursive factorial of %d calculated to be: %d\n", input, factorial_recursive(input));
+	
+	println("now printing a grid of size %d x %d\n", grid_x, grid_y);
+	print_grid(grid_x, grid_y);
 }
 
 
