@@ -43,6 +43,7 @@ AsmLexer_convertToAssemblerTokens(const char* source) {
 			at--;
 			word = (char *)calloc(1, len + 1);
 			for (int i = 0; i < len; i++) {
+				if (*source == '"') break;
 				switch (*source) {
 					case '\\':
 						switch (*++source) {
@@ -69,7 +70,6 @@ AsmLexer_convertToAssemblerTokens(const char* source) {
 					default:
 						if (*source == '"') break;
 						word[i] = *source;
-						break;
 				}
 				source++;
 			}
