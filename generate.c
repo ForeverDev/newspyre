@@ -668,7 +668,11 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 				case TYPE_IDENTIFIER: {
 					TreeVariable* var = find_variable(S, at->token->word);
 					tc_push_var(types, var);
-					writestr(S, "ilload %d", var->offset);
+					if (!strcmp(var->datatype, "float")) {
+						writestr(S, "flload %d", var->offset);
+					} else {
+						writestr(S, "ilload %d", var->offset);
+					}
 					writestr(S, COMMENT("%s"), var->identifier);
 					goto typecheck_done;
 				}

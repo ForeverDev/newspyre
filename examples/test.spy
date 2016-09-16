@@ -55,11 +55,31 @@ func main() -> null {
 	grid_x : int;
 	grid_y : int;
 
+	num_map : float;
+	old_range_bottom : float;
+	old_range_top : float;
+	new_range_bottom : float;
+	new_range_top : float;
+
 	input = 5;
 	grid_x = 15;
 	grid_y = 6;
 
-	println("%f", map(5.0, 0.0, 10.0, 0.0, 20.0));
+	num_map = 20.0;
+	old_range_bottom = 10.0;
+	old_range_top = 30.0;
+	new_range_bottom = 50.0;
+	new_range_top = 100.0;
+	
+	println(
+		"%f mapped from [%f, %f] to [%f, %f] is %f",
+		num_map,
+		old_range_bottom,
+		old_range_top,
+		new_range_bottom.
+		new_range_top,
+		map(num_map, old_range_bottom, old_range_top, new_range_bottom, new_range_top)
+	);
 
 	println("\niterative factorial of %d calculated to be: %d", input, factorial_iteration(input));
 	println("recursive factorial of %d calculated to be: %d", input, factorial_recursive(input));

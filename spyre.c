@@ -251,7 +251,8 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 		&&res, &&ilea, &&ider, &&icinc, &&cder,
 		&&lor, &&land, &&padd, &&psub, &&log,
 		&&vret, &&dbon, &&dboff, &&dbds, &&cjnz,
-		&&cjz, &&cjmp, &&ilnsave, &&ilnload
+		&&cjz, &&cjmp, &&ilnsave, &&ilnload,
+		&&flload
 	};
 
 	/* main interpreter loop */
@@ -601,6 +602,10 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	goto dispatch;
 
 	ilnload:
+	goto dispatch;
+
+	flload:
+	Spy_pushFloat(&S, *(double *)&S.bp[Spy_readInt32(&S)*8 + 8]);
 	goto dispatch;
 
 	done:

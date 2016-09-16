@@ -2,7 +2,7 @@ let __CFUNC__print "print"
 let __STR__0000 "%s   "
 let __STR__0001 "\n\n"
 let __CFUNC__println "println"
-let __STR__0002 "%f"
+let __STR__0002 "%f mapped from [%f, %f] to [%f, %f] is %f"
 let __STR__0003 "\niterative factorial of %d calculated to be: %d"
 let __STR__0004 "recursive factorial of %d calculated to be: %d"
 let __STR__0005 "recursive fibonacci of %d calculated to be: %d\n"
@@ -132,38 +132,53 @@ iarg 2
 iarg 3
 iarg 4
 res 0
-ilload 0 ; ----> n
-ilload 1 ; ----> a
+flload 0 ; ----> n
+flload 1 ; ----> a
 fsub
-ilload 2 ; ----> b
-ilload 1 ; ----> a
+flload 2 ; ----> b
+flload 1 ; ----> a
 fsub
 fdiv
-ilload 4 ; ----> d
-ilload 3 ; ----> c
+flload 4 ; ----> d
+flload 3 ; ----> c
 fsub
 fmul
-ilload 3 ; ----> c
+flload 3 ; ----> c
 fadd
 jmp __LABEL__0013 ; ----> return from map
 __LABEL__0013: ; ----> return label
 iret
 __FUNC__main:
-res 3
+res 8
 ipush 5
 ilsave 0
 ipush 15
 ilsave 1
 ipush 6
 ilsave 2
-ipush __STR__0002
-fpush 5.0
-fpush 0.0
-fpush 10.0
-fpush 0.0
 fpush 20.0
+ilsave 3
+fpush 10.0
+ilsave 4
+fpush 30.0
+ilsave 5
+fpush 50.0
+ilsave 6
+fpush 100.0
+ilsave 7
+ipush __STR__0002
+flload 3 ; ----> num_map
+flload 4 ; ----> old_range_bottom
+flload 5 ; ----> old_range_top
+flload 6 ; ----> new_range_bottom
+flload 7 ; ----> new_range_top
+flload 3 ; ----> num_map
+flload 4 ; ----> old_range_bottom
+flload 5 ; ----> old_range_top
+flload 6 ; ----> new_range_bottom
+flload 7 ; ----> new_range_top
 call __FUNC__map, 5
-ccall __CFUNC__println, 2
+ccall __CFUNC__println, 6
 ipush __STR__0003
 ilload 0 ; ----> input
 ilload 0 ; ----> input
