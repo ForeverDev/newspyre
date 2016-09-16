@@ -58,6 +58,7 @@ struct TreeBlock {
 };
 
 struct TreeNode {
+	unsigned int line;
 	NodeType type;
 	TreeWord* words;
 	TreeNode* next;

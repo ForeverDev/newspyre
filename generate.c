@@ -23,6 +23,7 @@ struct ExpressionNode {
 	Token* token; /* only applicable if not is_func */
 
 	char* func_name; /* only applicable if is_func */
+	TreeNode* fptr;
 	char* datatype;
 	ExpressionNode* argument; /* only applicable if is_func */
 };
@@ -33,9 +34,11 @@ struct ExpressionStack {
 	ExpressionStack* prev;
 };
 
-static void lv_push(LiteralValue*, char*);
-static char* lv_pop(LiteralValue*);
-static char* lv_top(LiteralValue*);
+static void tc_push_inline(TypecheckObject*, char*);
+static void tc_push_var(TypecheckObject*, TreeVariable*);
+static void tc_append(TypecheckObject*, TypecheckObject*);
+static TypecheckObject* tc_pop(TypecheckObject*);
+static TypecheckObject* tc_top(TypecheckObject*);
 static ExpressionNode* ts_pop(ExpressionStack*);
 static ExpressionNode* ts_top(ExpressionStack*);
 static void ts_push(ExpressionStack*, ExpressionNode*);
@@ -45,7 +48,7 @@ static inline void writelabel(CompileState*);
 static void compile_if(CompileState*);
 static void compile_function_body(CompileState*);
 static void compile_array_index(CompileState*, Token**);
-static void generate_expression(CompileState*, ExpressionNode*);
+static TypecheckObject* generate_expression(CompileState*, ExpressionNode*);
 static void compile_return(CompileState*);
 static void compile_assignment(CompileState*);
 static ExpressionNode* compile_expression(CompileState*, Token*);
@@ -58,32 +61,62 @@ static void advance(CompileState*);
 static unsigned int count_function_var_size(CompileState*);
 static unsigned int count_function_args(CompileState*);
 static TreeVariable* find_variable(CompileState*, const char*);
+static void comp_error(CompileState*, const char*, ...);
 
 static void
-lv_push(LiteralValue* lit, char* str) {
-	if (!lit->name) {
-		lit->name = str;
-		lit->next = NULL;
-		return;
-	}
-	LiteralValue* i;
-	for (i = lit; i->next; i = i->next);
-	LiteralValue* new = malloc(sizeof(LiteralValue));
-	i->next = new;
-	new->name = str;
-	new->prev = i;
-	new->next = NULL;
+comp_error(CompileState* S, const char* format, ...) {
+	va_list list;
+	va_start(list, format);
+	
+	printf("\n\n----> SPYRE COMPILE-TIME ERROR (near line %d) <----\n\n", S->node_focus->line);
+	vprintf(format, list);
+	printf("\n\n\n");
+	va_end(list);
+
+	exit(1);
 }
 
-static char*
-lv_pop(LiteralValue* lit) {
-	if (!lit->name) return NULL;
-	LiteralValue* i, *prev;
-	for (i = lit; i->next; i = i->next);
-	i->prev->next = NULL;
-	char* ret = i->name;
-	free(i);
-	return ret;
+static void
+tc_append(TypecheckObject* obj, TypecheckObject* new) {
+	/* datatype won't exist if obj hasn't been assigned */
+	if (!obj->datatype) {
+		memcpy(obj, new, sizeof(TypecheckObject));
+		return;
+	}
+	TypecheckObject* i;
+	for (i = obj; i->next; i = i->next);
+	i->next = new;
+	new->next = NULL;
+	new->prev = i;
+}
+
+static TypecheckObject*
+tc_pop(TypecheckObject* obj) {
+	if (!obj->datatype) return NULL;
+	TypecheckObject* i;
+	for (i = obj; i->next; i = i->next);
+	if (i->prev) {
+		i->prev->next = NULL;
+		i->prev = NULL;
+	}
+	return i;
+}
+
+static void
+tc_push_inline(TypecheckObject* obj, char* type) {
+	TypecheckObject* new = calloc(1, sizeof(TypecheckObject));
+	new->datatype = type;
+	tc_append(obj, new);
+}
+
+static void
+tc_push_var(TypecheckObject* obj, TreeVariable* var) {
+	TypecheckObject* new = calloc(1, sizeof(TypecheckObject));
+	new->datatype = var->datatype;
+	new->is_var = 1;
+	new->offset = var->offset;
+	new->identifier = var->identifier;
+	tc_append(obj, new);
 }
 
 static TreeVariable*
@@ -353,10 +386,12 @@ compile_function_call(CompileState* S, Token** expression) {
 
 	/* find the function declaration */
 	char* datatype = NULL;
+	TreeNode* fptr = NULL;
 	for (TreeNode* i = S->root_block->children; i; i = i->next) {
 		if (i->type == FUNCTION && i->ret) {
 			if (!strcmp(i->words->token->word, at->word)) {
 				datatype = i->ret->datatype;
+				fptr = i;
 			}
 		}
 	}		
@@ -377,6 +412,7 @@ compile_function_call(CompileState* S, Token** expression) {
 	node->token->type = TYPE_FUNCCALL;
 	node->token->word = "FUNCTION_CALL";
 	node->argument = NULL;
+	node->fptr = fptr;
 	at = at->next->next;
 	if (at->type == TYPE_CLOSEPAR) {
 		*expression = at ? at->next : NULL;
@@ -457,11 +493,6 @@ compile_expression(CompileState* S, Token* expression) {
 	while (at) {
 		if (at->next && at->type == TYPE_IDENTIFIER && at->next->type == TYPE_OPENPAR) {
 			ExpressionNode* node = compile_function_call(S, &at); 
-			if (at->type == TYPE_IDENTIFIER) {
-				node->datatype = find_variable(S, at->word)->datatype;
-			} else {
-				node->datatype = "__NA__";
-			}
 			ts_push(postfix, node);
 		} else if (at->type == TYPE_IDENTIFIER || at->type == TYPE_NUMBER || at->type == TYPE_STRING) {
 			ExpressionNode* node = calloc(1, sizeof(ExpressionNode));
@@ -522,10 +553,10 @@ compile_expression(CompileState* S, Token* expression) {
 
 }
 
-static void
+static TypecheckObject* 
 generate_expression(CompileState* S, ExpressionNode* expression) {
 	ExpressionNode* at = expression;
-	LiteralValue* types = malloc(sizeof(LiteralValue));
+	TypecheckObject* types = calloc(1, sizeof(TypecheckObject));
 	while (at) {
 		if (at->is_func) {
 			/* args pushed in foward order, must be reverse popped by callee */
@@ -540,13 +571,35 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 					}
 					counter = counter->next;
 				}
-				generate_expression(S, at->argument);
+				/* for now don't typecheck C functions... eventually some sort of "extern" statement
+				   will be needed for those
+				*/
+				TypecheckObject* param_types = generate_expression(S, at->argument);
+				if (at->fptr) {
+					TreeVariable* params = at->fptr->block->locals;
+					unsigned int index = 0;
+					for (TypecheckObject* i = param_types; i; i = i->next) {
+						index++;
+						if (strcmp(i->datatype, params->datatype)) {
+							comp_error(S,
+								"incompatable parameter #%d is of type (%s). expected type (%s)",
+								index, 
+								i->datatype, 
+								params->datatype
+							);
+						}
+
+						params = params->next;
+					}
+				}
 			}
 			int result_func = function_exists(S, at->func_name);
 			if (result_func == 1) {
 				writestr(S, "call __FUNC__%s, %d\n", at->func_name, numargs);
+				tc_push_inline(types, at->datatype);
 			} else if (result_func == 2) {
 				writestr(S, "ccall __CFUNC__%s, %d\n", at->func_name, numargs);
+				tc_push_inline(types, "int");
 			}
 		} else {
 			switch (at->token->type) {
@@ -561,42 +614,59 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 				case TYPE_EQ: writestr(S, "icmp\n"); goto typecheck;
 				case TYPE_SHR: writestr(S, "shr\n"); goto typecheck;
 				case TYPE_SHL: writestr(S, "shl\n"); goto typecheck;
-				case TYPE_COMMA: break;
+				case TYPE_COMMA: goto typecheck_done;
 				case TYPE_NUMBER: 
-					lv_push(types, "int");
+					tc_push_inline(types, "int");
 					writestr(S, "ipush %s\n", at->token->word); 
-					break;
+					goto typecheck_done;
 				case TYPE_STRING: 
-					lv_push(types, "string");
+					tc_push_inline(types, "string");
 					writestr(S, "ipush %s\n", at->token->word); 
-					break;
+					goto typecheck_done;
 				case TYPE_ASSIGN: {
 					
-					break;
+					goto typecheck_done;
 				}
 				case TYPE_IDENTIFIER: {
 					TreeVariable* var = find_variable(S, at->token->word);
-					lv_push(types, var->datatype);
+					tc_push_var(types, var);
 					writestr(S, "ilload %d", var->offset);
 					writestr(S, COMMENT("%s"), var->identifier);
-					break;
+					goto typecheck_done;
 				}
 			}
 			goto typecheck_done;
+			TypecheckObject *popa, *popb;
 			typecheck:
-
-			typecheck_done:
-			;
+			popb = tc_pop(types);
+			if (!popa) comp_error(S, "malformed expression");
+			popa = tc_pop(types);
+			if (!popb) comp_error(S, "malformed expression");
+			if (strcmp(popa->datatype, popb->datatype)) {
+				comp_error(S, "attempt to perform arithmetic on mismatched types (%s) and (%s)", popa->datatype, popb->datatype);
+			}
+			tc_append(types, popa);
+			typecheck_done:;
 		}
 		at = at->next;
 	}
+	
+	return types;
 }
 
 static void 
 compile_assignment(CompileState* S) {
-	generate_expression(S, compile_expression(S, S->node_focus->words->next->token));
+	TypecheckObject* t = generate_expression(S, compile_expression(S, S->node_focus->words->next->token));
 	/* no structs yet, should only be a single var name */
 	TreeVariable* local = find_variable(S, S->node_focus->words->token->word);
+	if (strcmp(t->datatype, local->datatype)) {
+		comp_error(S,
+			"attempt to assign expression that results in type (%s) to variable (%s). expected type (%s)", 
+			t->datatype, 
+			local->identifier,
+			local->datatype
+		);
+	}
 	writestr(S, "ilsave %d\n", local->offset);
 }
 
@@ -648,14 +718,22 @@ compile_function_body(CompileState* S) {
 
 static void
 compile_return(CompileState* S) {
-	ExpressionNode* exp = compile_expression(S, S->node_focus->words->token);
-	generate_expression(S, exp);
+	TypecheckObject* t = generate_expression(S, compile_expression(S, S->node_focus->words->token));
+	if (t->datatype && S->current_function->ret && S->current_function->ret->datatype) {
+		if (strcmp(t->datatype, S->current_function->ret->datatype)) {
+			comp_error(S,
+				"attempt to return expression that results in type (%s). expected type (%s)", 
+				t->datatype, 
+				S->current_function->ret->datatype
+			);
+		}
+	}
 	writestr(S, JMP_LABEL_FORMAT, S->return_label); 
 	writestr(S, COMMENT("return from %s"), S->current_function->words->token->word);
 }
 
 static void
-compile_Sment(CompileState* S) {
+compile_statement(CompileState* S) {
 	ExpressionNode* expression = compile_expression(S, S->node_focus->words->token);
 	generate_expression(S, expression);
 }
@@ -733,7 +811,7 @@ generate_bytecode(TreeBlock* tree, const char* output_name) {
 			case RETURN: compile_return(S); break;
 			case ASSIGNMENT: compile_assignment(S); break;
 			case DECLARATION: break;
-			default: compile_Sment(S); break;
+			default: compile_statement(S); break;
 		}
 		advance(S);
 		if (!S->node_focus || S->node_focus->type == ROOT) {

@@ -100,6 +100,7 @@ new_node(Tree* T, unsigned int type, int has_block) {
 	node->prev = NULL;
 	node->block = NULL;
 	node->ret = NULL;
+	node->line = T->tokens->prev ? T->tokens->prev->line : T->tokens->line;
 	if (has_block) {
 		node->block = malloc(sizeof(TreeBlock));
 		node->block->parent_node = node;
@@ -452,10 +453,10 @@ parse_function(Tree* T) {
 	T->tokens = T->tokens->next->next;
 	TreeVariable* return_var = malloc(sizeof(TreeVariable));
 	parse_datatype(T, return_var);
-	node->ret = return_var;
 	return_var->next = NULL;
 	return_var->identifier = "__RETURN_TYPE__";
 	return_var->is_arg = 0;
+	node->ret = return_var;
 	node->variable = NULL;
 	T->tokens = T->tokens->next;
 	append_to_block(T, node);

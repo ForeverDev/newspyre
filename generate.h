@@ -8,6 +8,7 @@
 typedef struct CompileState CompileState;
 typedef struct InstructionStack InstructionStack;
 typedef struct LiteralValue LiteralValue;
+typedef struct TypecheckObject TypecheckObject;
 
 struct InstructionStack {
 	char* instructions[16]; /* 16 is way too high but better safe */
@@ -20,8 +21,18 @@ struct InstructionStack {
 struct LiteralValue {
 	char* name;
 	LiteralValue* next;	
-	LiteralValue* prev;
 	int is_c;
+};
+
+struct TypecheckObject {
+	TypecheckObject* next;
+	TypecheckObject* prev;
+	char* datatype;
+	int is_var; /* if not is_var, it is an "inline" value */
+
+	/* the following are only applicable if is_var */
+	unsigned int offset;
+	char* identifier;
 };
 
 struct CompileState {
