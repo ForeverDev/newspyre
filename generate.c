@@ -133,8 +133,11 @@ find_variable(CompileState* S, const char* identifier) {
 		if (!block->parent_node) break;
 		block = block->parent_node->parent_block;
 	}
-	printf("undeclared identifier %s in function %p\n", identifier, S->current_function);
-	exit(1);
+	comp_error(S, 
+		"undeclared identifier %s", 
+		identifier, 
+		S->current_function
+	);
 	return NULL;
 }
 
@@ -586,7 +589,7 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 						index++;
 						if (strcmp(i->datatype, params->datatype)) {
 							comp_error(S,
-								"incompatable parameter #%d is of type (%s). expected type (%s)",
+								"parameter #%d is of type (%s). expected type (%s)",
 								index, 
 								i->datatype, 
 								params->datatype
@@ -606,25 +609,54 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 				tc_push_inline(types, "int");
 			}
 		} else {
+			TypecheckObject* obj = NULL;
+			for (obj = types; obj->next; obj = obj->next);
+			char* datatype = NULL;
+			if (obj && obj->datatype) {
+				datatype = !strcmp(obj->datatype, "float") ? "f" : "i";
+				switch (at->token->type) {
+					case TYPE_PLUS:
+					case TYPE_HYPHON:
+					case TYPE_ASTER:
+					case TYPE_FORSLASH:
+					case TYPE_LT:
+					case TYPE_LE:
+					case TYPE_GT:
+					case TYPE_GE:
+					case TYPE_EQ:
+						writestr(S, datatype);
+						break;
+				}
+			}
 			switch (at->token->type) {
-				case TYPE_PLUS: writestr(S, "iadd\n"); goto typecheck;
-				case TYPE_HYPHON: writestr(S, "isub\n"); goto typecheck;
-				case TYPE_ASTER: writestr(S, "imul\n"); goto typecheck;
-				case TYPE_FORSLASH: writestr(S, "idiv\n"); goto typecheck;
-				case TYPE_LT: writestr(S, "ilt\n"); goto typecheck;
-				case TYPE_LE: writestr(S, "ile\n"); goto typecheck;
-				case TYPE_GT: writestr(S, "igt\n"); goto typecheck;
-				case TYPE_GE: writestr(S, "ige\n"); goto typecheck;
-				case TYPE_EQ: writestr(S, "icmp\n"); goto typecheck;
+				case TYPE_PLUS: writestr(S, "add\n"); goto typecheck;
+				case TYPE_HYPHON: writestr(S, "sub\n"); goto typecheck;
+				case TYPE_ASTER: writestr(S, "mul\n"); goto typecheck;
+				case TYPE_FORSLASH: writestr(S, "div\n"); goto typecheck;
+				case TYPE_LT: writestr(S, "lt\n"); goto typecheck;
+				case TYPE_LE: writestr(S, "le\n"); goto typecheck;
+				case TYPE_GT: writestr(S, "gt\n"); goto typecheck;
+				case TYPE_GE: writestr(S, "ge\n"); goto typecheck;
+				case TYPE_EQ: writestr(S, "cmp\n"); goto typecheck;
+
 				case TYPE_SHR: writestr(S, "shr\n"); goto typecheck;
 				case TYPE_SHL: writestr(S, "shl\n"); goto typecheck;
 				case TYPE_LOGOR: writestr(S, "lor\n"); goto typecheck;
 				case TYPE_LOGAND: writestr(S, "land\n"); goto typecheck;
 				case TYPE_COMMA: goto typecheck_done;
-				case TYPE_NUMBER: 
+				case TYPE_NUMBER: { 
+					/* scan for a decimal to check if it's a float */
+					for (char* i = at->token->word; *i; i++) {
+						if (*i == '.') {
+							tc_push_inline(types, "float");	
+							writestr(S, "fpush %s\n", at->token->word);
+							goto typecheck_done;
+						}
+					}
 					tc_push_inline(types, "int");
 					writestr(S, "ipush %s\n", at->token->word); 
 					goto typecheck_done;
+				}
 				case TYPE_STRING: 
 					tc_push_inline(types, "string");
 					writestr(S, "ipush %s\n", at->token->word); 
@@ -658,6 +690,10 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 	}
 	
 	return types;
+}
+
+static void
+compile_for(CompileState* S) {
 }
 
 static void 

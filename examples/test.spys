@@ -2,11 +2,12 @@ let __CFUNC__print "print"
 let __STR__0000 "%s   "
 let __STR__0001 "\n\n"
 let __CFUNC__println "println"
-let __STR__0002 "\niterative factorial of %d calculated to be: %d"
-let __STR__0003 "recursive factorial of %d calculated to be: %d"
-let __STR__0004 "recursive fibonacci of %d calculated to be: %d\n"
-let __STR__0005 "now printing a grid of size %d x %d\n"
-let __STR__0006 "X"
+let __STR__0002 "%f"
+let __STR__0003 "\niterative factorial of %d calculated to be: %d"
+let __STR__0004 "recursive factorial of %d calculated to be: %d"
+let __STR__0005 "recursive fibonacci of %d calculated to be: %d\n"
+let __STR__0006 "now printing a grid of size %d x %d\n"
+let __STR__0007 "X"
 jmp __ENTRY_POINT__
 __FUNC__factorial_recursive:
 iarg 0
@@ -124,6 +125,29 @@ jmp __LABEL__0009 ; ----> while jump top
 __LABEL__0010: ; ----> while bottom
 __LABEL__0008: ; ----> return label
 iret
+__FUNC__map:
+iarg 0
+iarg 1
+iarg 2
+iarg 3
+iarg 4
+res 0
+ilload 0 ; ----> n
+ilload 1 ; ----> a
+fsub
+ilload 2 ; ----> b
+ilload 1 ; ----> a
+fsub
+fdiv
+ilload 4 ; ----> d
+ilload 3 ; ----> c
+fsub
+fmul
+ilload 3 ; ----> c
+fadd
+jmp __LABEL__0013 ; ----> return from map
+__LABEL__0013: ; ----> return label
+iret
 __FUNC__main:
 res 3
 ipush 5
@@ -133,29 +157,37 @@ ilsave 1
 ipush 6
 ilsave 2
 ipush __STR__0002
+fpush 5.0
+fpush 0.0
+fpush 10.0
+fpush 0.0
+fpush 20.0
+call __FUNC__map, 5
+ccall __CFUNC__println, 2
+ipush __STR__0003
 ilload 0 ; ----> input
 ilload 0 ; ----> input
 call __FUNC__factorial_iteration, 1
 ccall __CFUNC__println, 3
-ipush __STR__0003
+ipush __STR__0004
 ilload 0 ; ----> input
 ilload 0 ; ----> input
 call __FUNC__factorial_recursive, 1
 ccall __CFUNC__println, 3
-ipush __STR__0004
+ipush __STR__0005
 ilload 0 ; ----> input
 ilload 0 ; ----> input
 call __FUNC__fibonacci, 1
 ccall __CFUNC__println, 3
-ipush __STR__0005
+ipush __STR__0006
 ilload 1 ; ----> grid_x
 ilload 2 ; ----> grid_y
 ccall __CFUNC__println, 3
 ilload 1 ; ----> grid_x
 ilload 2 ; ----> grid_y
-ipush __STR__0006
+ipush __STR__0007
 call __FUNC__print_grid, 3
-__LABEL__0013: ; ----> return label
+__LABEL__0014: ; ----> return label
 iret
 __ENTRY_POINT__:
 call __FUNC__main, 0

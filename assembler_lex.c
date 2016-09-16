@@ -86,7 +86,7 @@ AsmLexer_convertToAssemblerTokens(const char* source) {
 			char* word;
 			size_t len = 0;
 			const char* at = source;
-			while (isalnum(*at++) && ++len);
+			while ((isdigit(*at) || *at == '.') && ++len) at++;
 			at--;
 			word = (char *)malloc(len + 2);	
 			memcpy(word, source - 1, len + 1);
