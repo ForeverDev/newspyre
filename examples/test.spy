@@ -21,7 +21,10 @@ func factorial_iteration(n : int) -> int {
 }	
 
 func fibonacci(n : int) -> int {
-	if n <= 1 {
+	if n <= 0 {
+		return 0;
+	}
+	if n == 1 || n == 2 {
 		return 1;
 	}
 	return fibonacci(n - 1) + fibonacci(n - 2);
@@ -53,7 +56,7 @@ func main() -> null {
 	grid_y = 6;
 	
 	println("\niterative factorial of %d calculated to be: %d", input, factorial_iteration(input));
-	println("recursive factorial of %d calculated to be: %d\n", input, factorial_recursive(input));
+	println("recursive factorial of %d calculated to be: %d", input, factorial_recursive(input));
 	println("recursive fibonacci of %d calculated to be: %d\n", input, fibonacci(input));
 	println("now printing a grid of size %d x %d\n", grid_x, grid_y);
 	print_grid(grid_x, grid_y, "X");

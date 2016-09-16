@@ -3,9 +3,10 @@ let __STR__0000 "%s   "
 let __STR__0001 "\n\n"
 let __CFUNC__println "println"
 let __STR__0002 "\niterative factorial of %d calculated to be: %d"
-let __STR__0003 "recursive factorial of %d calculated to be: %d\n"
-let __STR__0004 "now printing a grid of size %d x %d\n"
-let __STR__0005 "X"
+let __STR__0003 "recursive factorial of %d calculated to be: %d"
+let __STR__0004 "recursive fibonacci of %d calculated to be: %d\n"
+let __STR__0005 "now printing a grid of size %d x %d\n"
+let __STR__0006 "X"
 jmp __ENTRY_POINT__
 __FUNC__factorial_recursive:
 iarg 0
@@ -56,12 +57,23 @@ __FUNC__fibonacci:
 iarg 0
 res 0
 ilload 0 ; ----> n
-ipush 1
+ipush 0
 ile
 jz __LABEL__0006 ; ----> if condition jump
-ipush 1
+ipush 0
 jmp __LABEL__0005 ; ----> return from fibonacci
 __LABEL__0006: ; if bottom
+ilload 0 ; ----> n
+ipush 1
+icmp
+ilload 0 ; ----> n
+ipush 2
+icmp
+lor
+jz __LABEL__0007 ; ----> if condition jump
+ipush 1
+jmp __LABEL__0005 ; ----> return from fibonacci
+__LABEL__0007: ; if bottom
 ilload 0 ; ----> n
 ipush 1
 isub
@@ -81,16 +93,16 @@ iarg 2
 res 1
 ilload 0 ; ----> x_dimension
 ilsave 3
-__LABEL__0008: ; ----> while top
+__LABEL__0009: ; ----> while top
 ilload 1 ; ----> y_dimension
 ipush 0
 igt
-jz __LABEL__0009 ; ----> while condition jump
-__LABEL__0010: ; ----> while top
+jz __LABEL__0010 ; ----> while condition jump
+__LABEL__0011: ; ----> while top
 ilload 0 ; ----> x_dimension
 ipush 0
 igt
-jz __LABEL__0011 ; ----> while condition jump
+jz __LABEL__0012 ; ----> while condition jump
 ipush __STR__0000
 ilload 2 ; ----> grid_str
 ccall __CFUNC__print, 2
@@ -98,8 +110,8 @@ ilload 0 ; ----> x_dimension
 ipush 1
 isub
 ilsave 0
-jmp __LABEL__0010 ; ----> while jump top
-__LABEL__0011: ; ----> while bottom
+jmp __LABEL__0011 ; ----> while jump top
+__LABEL__0012: ; ----> while bottom
 ipush __STR__0001
 ccall __CFUNC__print, 1
 ilload 1 ; ----> y_dimension
@@ -108,9 +120,9 @@ isub
 ilsave 1
 ilload 3 ; ----> start_x
 ilsave 0
-jmp __LABEL__0008 ; ----> while jump top
-__LABEL__0009: ; ----> while bottom
-__LABEL__0007: ; ----> return label
+jmp __LABEL__0009 ; ----> while jump top
+__LABEL__0010: ; ----> while bottom
+__LABEL__0008: ; ----> return label
 iret
 __FUNC__main:
 res 3
@@ -131,14 +143,19 @@ ilload 0 ; ----> input
 call __FUNC__factorial_recursive, 1
 ccall __CFUNC__println, 3
 ipush __STR__0004
+ilload 0 ; ----> input
+ilload 0 ; ----> input
+call __FUNC__fibonacci, 1
+ccall __CFUNC__println, 3
+ipush __STR__0005
 ilload 1 ; ----> grid_x
 ilload 2 ; ----> grid_y
 ccall __CFUNC__println, 3
 ilload 1 ; ----> grid_x
 ilload 2 ; ----> grid_y
-ipush __STR__0005
+ipush __STR__0006
 call __FUNC__print_grid, 3
-__LABEL__0012: ; ----> return label
+__LABEL__0013: ; ----> return label
 iret
 __ENTRY_POINT__:
 call __FUNC__main, 0

@@ -470,11 +470,11 @@ compile_expression(CompileState* S, Token* expression) {
 	static const unsigned int op_pres[256] = {
 		[TYPE_COMMA]		= 1,
 		[TYPE_ASSIGN]		= 2,
+		[TYPE_LOGAND]		= 2,
+		[TYPE_LOGOR]		= 2,
 		[TYPE_EQ]			= 3,
 		[TYPE_NOTEQ]		= 3,
 		[TYPE_PERIOD]		= 4,
-		[TYPE_LOGAND]		= 4,
-		[TYPE_LOGOR]		= 4,
 		[TYPE_GT]			= 5,
 		[TYPE_GE]			= 5,
 		[TYPE_LT]			= 5,
@@ -542,7 +542,7 @@ compile_expression(CompileState* S, Token* expression) {
 		token->next is no longer a viable way to reach
 		the next token!
 	*/	
-	while (postfix) {
+	while (postfix && postfix->node) {
 		postfix->node->token->next = NULL;
 		postfix->node->token->prev = NULL;
 		postfix->node->next = postfix->next ? postfix->next->node : NULL;
@@ -557,6 +557,10 @@ static TypecheckObject*
 generate_expression(CompileState* S, ExpressionNode* expression) {
 	ExpressionNode* at = expression;
 	TypecheckObject* types = calloc(1, sizeof(TypecheckObject));
+	if (!at) {
+		types->datatype = "null";
+		return types;
+	}
 	while (at) {
 		if (at->is_func) {
 			/* args pushed in foward order, must be reverse popped by callee */
@@ -614,6 +618,8 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 				case TYPE_EQ: writestr(S, "icmp\n"); goto typecheck;
 				case TYPE_SHR: writestr(S, "shr\n"); goto typecheck;
 				case TYPE_SHL: writestr(S, "shl\n"); goto typecheck;
+				case TYPE_LOGOR: writestr(S, "lor\n"); goto typecheck;
+				case TYPE_LOGAND: writestr(S, "land\n"); goto typecheck;
 				case TYPE_COMMA: goto typecheck_done;
 				case TYPE_NUMBER: 
 					tc_push_inline(types, "int");

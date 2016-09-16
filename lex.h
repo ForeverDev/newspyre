@@ -75,6 +75,7 @@ typedef enum TokenType TokenType;
 #define TYPE_GE			147
 #define TYPE_LE			148
 #define TYPE_ARROW		149
+#define TYPE_IGNORE		200
 
 struct Token {
 	char*			word;

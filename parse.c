@@ -466,7 +466,15 @@ parse_return(Tree* T) {
 	T->tokens = T->tokens->next;
 	TreeNode* node = new_node(T, RETURN, 0);
 	TreeWord* expression = malloc(sizeof(TreeWord));
-	expression->token = parse_expression(T);
+	if (T->tokens->type == TYPE_SEMICOLON) {
+		expression->token = blank_token();
+		expression->token->type = TYPE_SEMICOLON;
+		expression->token->word = ";";
+		expression->token->next = NULL;
+		T->tokens = T->tokens->next;
+	} else {
+		expression->token = parse_expression(T);
+	}
 	expression->next = NULL;
 	node->words = expression;
 	append_to_block(T, node);
