@@ -13,9 +13,9 @@
 #define SPY_CMPRESULT 0x01
 
 /* constants */
-#define SIZE_MEMORY 0x100000
-#define SIZE_STACK	0x020000
-#define SIZE_ROM	0x020000
+#define SIZE_MEMORY 0x500000
+#define SIZE_STACK	0x100000
+#define SIZE_ROM	0x100000
 #define SIZE_PAGE	8
 
 #define START_ROM	0
@@ -64,6 +64,7 @@ void		Spy_dumpHeap(SpyState*);
 void		Spy_pushInt(SpyState*, int64_t);
 int64_t 	Spy_popInt(SpyState*);
 void		Spy_saveInt(SpyState*, uint8_t*, int64_t);
+void		Spy_saveFloat(SpyState*, uint8_t*, double);
 uint64_t	Spy_readInt32(SpyState*);
 uint64_t	Spy_readInt64(SpyState*);
 

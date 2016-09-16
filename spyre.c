@@ -72,6 +72,11 @@ Spy_saveInt(SpyState* S, uint8_t* addr, int64_t value) {
 	*(int64_t *)addr = value;
 }
 
+inline void
+Spy_saveFloat(SpyState* S, uint8_t* addr, double value) {
+	*(double *)addr = value;
+}
+
 inline uint8_t*
 Spy_popRaw(SpyState* S) {
 	S->sp -= 8;
@@ -252,7 +257,7 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 		&&lor, &&land, &&padd, &&psub, &&log,
 		&&vret, &&dbon, &&dboff, &&dbds, &&cjnz,
 		&&cjz, &&cjmp, &&ilnsave, &&ilnload,
-		&&flload
+		&&flload, &&flsave
 	};
 
 	/* main interpreter loop */
@@ -606,6 +611,10 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 
 	flload:
 	Spy_pushFloat(&S, *(double *)&S.bp[Spy_readInt32(&S)*8 + 8]);
+	goto dispatch;
+
+	flsave:
+	Spy_saveFloat(&S, &S.bp[Spy_readInt32(&S)*8 + 8], Spy_popFloat(&S));
 	goto dispatch;
 
 	done:

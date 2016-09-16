@@ -713,7 +713,12 @@ compile_assignment(CompileState* S) {
 			local->datatype
 		);
 	}
-	writestr(S, "ilsave %d\n", local->offset);
+	if (!strcmp(local->datatype, "float")) {
+		writestr(S, "flsave %d", local->offset);
+	} else {
+		writestr(S, "ilsave %d", local->offset);
+	}
+	writestr(S, COMMENT("%s"), local->identifier);
 }
 
 static void

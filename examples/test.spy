@@ -50,6 +50,46 @@ func map(n : float, a : float, b : float, c : float, d : float) -> float {
 	return (n - a) / (b - a) * (d - c) + c;
 }
 
+func draw_mandelbrot(size : float, iterations : float) -> null {
+	x_pos : float;
+	y_pos : float;
+	iter : float;
+	px : float;
+	py : float;
+	zx : float;
+	zy : float;
+	tmp : float;
+
+	x_pos = 0.0;
+	y_pos = 0.0;
+
+	while y_pos < size {
+		while x_pos < size {
+			px = map(x_pos, 0.0, size, 0.0 - 2.0, 1.0);			
+			py = map(y_pos, 0.0, size, 0.0 - 1.5, 1.5);
+			x_pos = x_pos + 1.0;
+			iter = 0.0;
+			zx = 0.0;
+			zy = 0.0;
+			while (iter < iterations) && (zx*zx + zy*zy <= 4.0) {
+				tmp = zx*zy;
+				zx = zx*zx - zy*zy + px;
+				zy = tmp*2.0 + py;
+				iter = iter + 1.0;
+			}
+			if iter == iterations {
+				print("  ");
+			}
+			if iter < iterations {
+				print("X ");
+			}
+		}
+		print("\n");
+		x_pos = 0.0;
+		y_pos = y_pos + 1.0;
+	}
+}
+
 func main() -> null {
 	input : int;
 	grid_x : int;
@@ -61,7 +101,7 @@ func main() -> null {
 	new_range_bottom : float;
 	new_range_top : float;
 
-	input = 5;
+	input = 6;
 	grid_x = 15;
 	grid_y = 6;
 
@@ -86,6 +126,7 @@ func main() -> null {
 	println("recursive fibonacci of %d calculated to be: %d\n", input, fibonacci(input));
 	println("now printing a grid of size %d x %d\n", grid_x, grid_y);
 	print_grid(grid_x, grid_y, "X");
+	draw_mandelbrot(50.0, 100.0);
 
 	
 }
