@@ -54,6 +54,7 @@ func main() -> null {
 	
 	println("\niterative factorial of %d calculated to be: %d", input, factorial_iteration(input));
 	println("recursive factorial of %d calculated to be: %d\n", input, factorial_recursive(input));
+	println("recursive fibonacci of %d calculated to be: %d\n", input, fibonacci(input));
 	println("now printing a grid of size %d x %d\n", grid_x, grid_y);
 	print_grid(grid_x, grid_y, "X");
 }
