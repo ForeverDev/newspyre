@@ -76,7 +76,7 @@ func main() -> null {
 		num_map,
 		old_range_bottom,
 		old_range_top,
-		new_range_bottom.
+		new_range_bottom,
 		new_range_top,
 		map(num_map, old_range_bottom, old_range_top, new_range_bottom, new_range_top)
 	);

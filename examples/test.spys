@@ -178,7 +178,7 @@ flload 5 ; ----> old_range_top
 flload 6 ; ----> new_range_bottom
 flload 7 ; ----> new_range_top
 call __FUNC__map, 5
-ccall __CFUNC__println, 6
+ccall __CFUNC__println, 7
 ipush __STR__0003
 ilload 0 ; ----> input
 ilload 0 ; ----> input
