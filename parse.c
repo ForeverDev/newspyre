@@ -142,12 +142,9 @@ static void
 append_node(TreeNode* head, TreeNode* node) {
 	TreeNode* at = head;
 	if (at->type == 0) {
-		at->type = node->type;
-		at->words = node->words;
+		memcpy(head, node, sizeof(TreeNode));
 		at->next = NULL;
 		at->prev = NULL;
-		at->block = node->block;
-		at->parent_block = node->parent_block;
 	} else {
 		while (at->next) {
 			at = at->next;

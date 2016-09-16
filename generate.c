@@ -68,7 +68,7 @@ comp_error(CompileState* S, const char* format, ...) {
 	va_list list;
 	va_start(list, format);
 	
-	printf("\n\n----> SPYRE COMPILE-TIME ERROR (near line %d) <----\n\n", S->node_focus->line);
+	printf("\n\n----> SPYRE COMPILE-TIME ERROR (LINE %d) <----\n\n", S->node_focus->line);
 	vprintf(format, list);
 	printf("\n\n\n");
 	va_end(list);
