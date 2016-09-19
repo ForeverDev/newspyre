@@ -628,6 +628,7 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 						break;
 				}
 			}
+			printf("generating %s %d\n", at->token->word, at->token->line);
 			switch (at->token->type) {
 				case TYPE_PLUS: writestr(S, "add\n"); goto typecheck;
 				case TYPE_HYPHON: writestr(S, "sub\n"); goto typecheck;
@@ -692,6 +693,8 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 		}
 		at = at->next;
 	}
+
+	printf("\n\n");
 	
 	return types;
 }
