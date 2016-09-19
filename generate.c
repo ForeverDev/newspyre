@@ -490,6 +490,7 @@ compile_expression(CompileState* S, Token* expression) {
 		[TYPE_PLUS]			= 7,
 		[TYPE_HYPHON]		= 7,
 		[TYPE_ASTER]		= 8,
+		[TYPE_PERCENT]		= 8,
 		[TYPE_FORSLASH]		= 8
 	};
 
@@ -628,9 +629,9 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 						break;
 				}
 			}
-			printf("generating %s %d\n", at->token->word, at->token->line);
 			switch (at->token->type) {
 				case TYPE_PLUS: writestr(S, "add\n"); goto typecheck;
+				case TYPE_PERCENT: writestr(S, "mod\n"); goto typecheck;
 				case TYPE_HYPHON: writestr(S, "sub\n"); goto typecheck;
 				case TYPE_ASTER: writestr(S, "mul\n"); goto typecheck;
 				case TYPE_FORSLASH: writestr(S, "div\n"); goto typecheck;
@@ -694,8 +695,6 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 		at = at->next;
 	}
 
-	printf("\n\n");
-	
 	return types;
 }
 

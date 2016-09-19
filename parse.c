@@ -576,6 +576,16 @@ generate_tree(Token* tokens) {
 	T->root_block = T->current_block;
 	
 	while (T->tokens) {
+		if (T->tokens->next && T->tokens->type == TYPE_FORSLASH && T->tokens->next->type == TYPE_ASTER) {
+			while (T->tokens->next && T->tokens->type != TYPE_FORSLASH && T->tokens->next->type != TYPE_ASTER) {
+				T->tokens = T->tokens->next;
+			}
+			if (T->tokens && T->tokens->next) {
+				T->tokens = T->tokens->next;
+			} else {
+				break;
+			}
+		}
 		switch (T->tokens->type) {
 			case TYPE_IF: parse_if(T); break;
 			case TYPE_ELSE: parse_else(T); break;

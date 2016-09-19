@@ -126,7 +126,7 @@ func main() -> null {
 	println("recursive fibonacci of %d calculated to be: %d\n", input, fibonacci(input));
 	println("now printing a grid of size %d x %d\n", grid_x, grid_y);
 	print_grid(grid_x, grid_y, "X");
-	draw_mandelbrot(50.0, 100.0);
+	draw_mandelbrot(50.0, 1000.0);
 
 	
 }

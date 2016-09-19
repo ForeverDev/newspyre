@@ -260,8 +260,11 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 		&&flload, &&flsave
 	};
 
+	int total = 0;
+
 	/* main interpreter loop */
 	dispatch:
+	total++;
 	if (S.sp >= &S.memory[START_HEAP]) {
 		Spy_crash(&S, "stack overflow");
 	}
@@ -619,9 +622,8 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 
 	done:
 	if (option_flags & SPY_DEBUG) {
-		Spy_dumpStack(&S);
-		Spy_dumpHeap(&S);
 		printf("\nSpyre process terminated\n");
+		printf("%d instructions were executed\n", total);
 	}
 
 	return;
