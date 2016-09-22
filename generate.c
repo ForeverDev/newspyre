@@ -838,7 +838,16 @@ compile_function_body(CompileState* S) {
 static void
 compile_return(CompileState* S) {
 	TypecheckObject* t = generate_expression(S, compile_expression(S, S->node_focus->words->token));
-	if (t->datatype && S->current_function->ret && S->current_function->ret->datatype) {
+	t = tc_pop(t);
+	if (!strcmp(S->current_function->ret->datatype, "int") && !strcmp(t->datatype, "float")) {
+		/* cast float to int */
+		writestr(S, "ftoi 0");
+		writestr(S, COMMENT("implicit cast float->int RETURN_STATEMENT"));
+	} else if (!strcmp(S->current_function->ret->datatype, "float") && !strcmp(t->datatype, "int")) {
+		/* cast int to float */
+		writestr(S, "itof 0");
+		writestr(S, COMMENT("implicit cast int->float RETURN_STATEMENT"));
+	} else if (t->datatype && S->current_function->ret && S->current_function->ret->datatype) {
 		if (strcmp(t->datatype, S->current_function->ret->datatype)) {
 			comp_error(S,
 				"attempt to return expression that results in type (%s). expected type (%s)", 
