@@ -1,0 +1,9 @@
+func main() -> null {
+	
+	x : float;
+	
+	x = 10 * 14.001 + (13.222 - 19);
+
+	println("%f", x);
+
+}
