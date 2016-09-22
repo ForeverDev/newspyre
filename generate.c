@@ -586,17 +586,28 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 				if (at->fptr) {
 					TreeVariable* params = at->fptr->block->locals;
 					unsigned int index = 0;
+					unsigned int nargs = 0;
 					for (TypecheckObject* i = param_types; i; i = i->next) {
-						index++;
-						if (strcmp(i->datatype, params->datatype)) {
+						nargs++;
+					}
+					for (TypecheckObject* i = param_types; i && params; i = i->next) {
+						if (!strcmp(i->datatype, "int") && !strcmp(params->datatype, "float")) {
+							/* attempt to pass int to parameter of type float, implicit cast */
+							writestr(S, "itof %d", nargs - index - 1);
+							writestr(S, COMMENT("implicit cast int->float @ARG[%d]"), index);
+						} else if (!strcmp(i->datatype, "float") && !strcmp(params->datatype, "int")) {
+							/* attempt to pass float to parameter of type int, implicit cast */
+							writestr(S, "ftoi %d", nargs - index - 1);
+							writestr(S, COMMENT("implicit cast float->int @ARG[%d]"), index);
+						} else if (strcmp(i->datatype, params->datatype)) {
 							comp_error(S,
 								"parameter #%d is of type (%s). expected type (%s)",
-								index, 
+								index + 1, 
 								i->datatype, 
 								params->datatype
 							);
 						}
-
+						index++;
 						params = params->next;
 					}
 				}
@@ -616,7 +627,7 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 			 * implicit casting (e.g. (50.0 * 3) -> (50.0 * 3.0)) is done
 			 * in this phase as well
 			 */
-			TypecheckObject* pop[2];
+			TypecheckObject* pop[2] = {0};
 			int isfloat[2] = {0};
 			int isint[2] = {0};
 			switch (at->token->type) {
@@ -629,15 +640,15 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 				case TYPE_GT:
 				case TYPE_GE:
 				case TYPE_EQ:
-					if (!pop[0] || !pop[1]) {
-						comp_error(S, "malformed expression");
-					}
 					for (int i = 0; i < 2; i++) {
 						pop[i] = tc_pop(types);
 						isfloat[i] = !strcmp(pop[i]->datatype, "float");
 						if (!isfloat[i]) {
 							isint[i] = !strcmp(pop[i]->datatype, "int");
 						}
+					}
+					if (!pop[0] || !pop[1]) {
+						comp_error(S, "malformed expression");
 					}
 					if ((isfloat[0] && isint[1]) || (isfloat[1] && isint[0])) {
 						/* arithmetic is being done between a float
@@ -744,7 +755,7 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 		at = at->next;
 	}
 
-	return tc_pop(types);
+	return types;
 }
 
 static void
@@ -754,13 +765,14 @@ compile_for(CompileState* S) {
 static void 
 compile_assignment(CompileState* S) {
 	TypecheckObject* t = generate_expression(S, compile_expression(S, S->node_focus->words->next->token));
+	t = tc_pop(t);
 	/* no structs yet, should only be a single var name */
 	TreeVariable* local = find_variable(S, S->node_focus->words->token->word);
 	if (!strcmp(local->datatype, "float") && !strcmp(t->datatype, "int")) {
 		/* implicit cast to int */
-		writestr(S, "itof 0 %s", COMMENT("implicit float->int assignment cast"));
+		writestr(S, "itof 0 %s", COMMENT("implicit cast float->int ASSIGNMENT"));
 	} else if (!strcmp(local->datatype, "int") && !strcmp(t->datatype, "float")) {
-		writestr(S, "ftoi 0 %s", COMMENT("implicit int->float assignment cast"));
+		writestr(S, "ftoi 0 %s", COMMENT("implicit cast int->float ASSIGNMENT"));
 	} else if (strcmp(t->datatype, local->datatype)) {
 		comp_error(S,
 			"attempt to assign expression that results in type (%s) to variable (%s). expected type (%s)", 

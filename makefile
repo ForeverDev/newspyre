@@ -1,12 +1,11 @@
 CC = gcc
-CF = -std=c99 -O2 
+CF = -std=c99 -O2 -g 
 OBJ = build/spyre.o build/main.o build/api.o build/assembler_lex.o build/assembler.o build/lex.o build/parse.o build/generate.o
 
 all: spy.exe
 
 spy.exe: build $(OBJ)
 	$(CC) $(CF) $(OBJ) -o spy.exe
-	rm -Rf build/*.o
 
 build:
 	mkdir build

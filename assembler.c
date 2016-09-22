@@ -67,7 +67,7 @@ const AssemblerInstruction instructions[0xFF] = {
 	{"ILNLOAD",	0x3B, {_INT32, _INT32}},
 	{"FLLOAD",	0x3C, {_INT32}},
 	{"FLSAVE",	0x3D, {_INT32}},
-	{"FTOI",	0x3E, {NO_OPERAND}},
+	{"FTOI",	0x3E, {_INT32}},
 	{"ITOF",	0x3F, {_INT32}},
 };
 

@@ -621,8 +621,10 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	Spy_saveFloat(&S, &S.bp[Spy_readInt32(&S)*8 + 8], Spy_popFloat(&S));
 	goto dispatch;
 
+	/* ***NOTE*** THIS ADDRESSES OFF THE TOP OF THE STACK */
 	ftoi:
-	Spy_pushFloat(&S, (double)Spy_popInt(&S));
+	a = Spy_readInt32(&S);
+	Spy_saveInt(&S, &S.sp[-a*8], (int64_t)(*(double *)&S.sp[-a*8]));
 	goto dispatch;
 	
 	/* ***NOTE*** THIS ADDRESSES OFF THE TOP OF THE STACK */
