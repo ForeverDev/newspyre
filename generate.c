@@ -610,62 +610,123 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 				tc_push_inline(types, "int");
 			}
 		} else {
-			TypecheckObject* obj = NULL;
-			for (obj = types; obj->next; obj = obj->next);
-			char* datatype = NULL;
-			if (obj && obj->datatype) {
-				datatype = !strcmp(obj->datatype, "float") ? "f" : "i";
-				switch (at->token->type) {
-					case TYPE_PLUS:
-					case TYPE_HYPHON:
-					case TYPE_ASTER:
-					case TYPE_FORSLASH:
-					case TYPE_LT:
-					case TYPE_LE:
-					case TYPE_GT:
-					case TYPE_GE:
-					case TYPE_EQ:
-						writestr(S, datatype);
-						break;
-				}
+			/* TYPECHECKING TIME!
+			 * only typecheck certain operators.. e.g plus, minus, multiply,
+			 * divide, etc.  datatypes are on the 'types' stack.
+			 * implicit casting (e.g. (50.0 * 3) -> (50.0 * 3.0)) is done
+			 * in this phase as well
+			 */
+			TypecheckObject* pop[2];
+			int isfloat[2] = {0};
+			int isint[2] = {0};
+			switch (at->token->type) {
+				case TYPE_PLUS:
+				case TYPE_HYPHON:
+				case TYPE_ASTER:
+				case TYPE_FORSLASH:
+				case TYPE_LT:
+				case TYPE_LE:
+				case TYPE_GT:
+				case TYPE_GE:
+				case TYPE_EQ:
+					if (!pop[0] || !pop[1]) {
+						comp_error(S, "malformed expression");
+					}
+					for (int i = 0; i < 2; i++) {
+						pop[i] = tc_pop(types);
+						isfloat[i] = !strcmp(pop[i]->datatype, "float");
+						if (!isfloat[i]) {
+							isint[i] = !strcmp(pop[i]->datatype, "int");
+						}
+					}
+					if ((isfloat[0] && isint[1]) || (isfloat[1] && isint[0])) {
+						/* arithmetic is being done between a float
+						 * and an int... e.g. (50.0 * 3).  convert it
+						 * to an expression with two floats
+						 */
+						tc_push_inline(types, "float");
+						writestr(S, "itof %d", isfloat[0]);
+						writestr(S, COMMENT("implicit cast int->float @[SP - %d]"), isfloat[0]);
+						writestr(S, "f");
+					} else if (strcmp(pop[0]->datatype, pop[1]->datatype)) {
+						comp_error(S,
+							"attempt to perform arithmetic on two incompatible types: (%s) and (%s)",			
+							pop[0]->datatype,
+							pop[1]->datatype
+						);
+					} else {
+						tc_push_inline(types, pop[0]->datatype);
+						/* write the prefix to the next instruction */
+						writestr(S, !strcmp(pop[0]->datatype, "float") ? "f" : "i");
+					}
+					break;
 			}
 			switch (at->token->type) {
-				case TYPE_PLUS: writestr(S, "add\n"); goto typecheck;
-				case TYPE_PERCENT: writestr(S, "mod\n"); goto typecheck;
-				case TYPE_HYPHON: writestr(S, "sub\n"); goto typecheck;
-				case TYPE_ASTER: writestr(S, "mul\n"); goto typecheck;
-				case TYPE_FORSLASH: writestr(S, "div\n"); goto typecheck;
-				case TYPE_LT: writestr(S, "lt\n"); goto typecheck;
-				case TYPE_LE: writestr(S, "le\n"); goto typecheck;
-				case TYPE_GT: writestr(S, "gt\n"); goto typecheck;
-				case TYPE_GE: writestr(S, "ge\n"); goto typecheck;
-				case TYPE_EQ: writestr(S, "cmp\n"); goto typecheck;
-
-				case TYPE_SHR: writestr(S, "shr\n"); goto typecheck;
-				case TYPE_SHL: writestr(S, "shl\n"); goto typecheck;
-				case TYPE_LOGOR: writestr(S, "lor\n"); goto typecheck;
-				case TYPE_LOGAND: writestr(S, "land\n"); goto typecheck;
-				case TYPE_COMMA: goto typecheck_done;
+				case TYPE_PLUS: 
+					writestr(S, "add\n"); 
+					break;
+				case TYPE_HYPHON: 
+					writestr(S, "sub\n"); 
+					break;
+				case TYPE_ASTER: 
+					writestr(S, "mul\n"); 
+					break;
+				case TYPE_FORSLASH: 
+					writestr(S, "div\n"); 
+					break;
+				case TYPE_LT: 
+					writestr(S, "lt\n"); 
+					break;
+				case TYPE_LE: 
+					writestr(S, "le\n"); 
+					break;
+				case TYPE_GT: 
+					writestr(S, "gt\n"); 
+					break;
+				case TYPE_GE:
+					writestr(S, "ge\n"); 
+					break;
+				case TYPE_EQ: 
+					writestr(S, "cmp\n"); 
+					break;
+				case TYPE_PERCENT: 
+					writestr(S, "mod\n"); 
+					break;
+				case TYPE_SHR: 
+					writestr(S, "shr\n"); 
+					break;
+				case TYPE_SHL: 
+					writestr(S, "shl\n"); 
+					break;
+				case TYPE_LOGOR: 
+					writestr(S, "lor\n"); 
+					break;
+				case TYPE_LOGAND: 
+					writestr(S, "land\n"); 
+					break;
+				case TYPE_COMMA: 
+					break;
 				case TYPE_NUMBER: { 
 					/* scan for a decimal to check if it's a float */
 					for (char* i = at->token->word; *i; i++) {
 						if (*i == '.') {
 							tc_push_inline(types, "float");	
 							writestr(S, "fpush %s\n", at->token->word);
-							goto typecheck_done;
+							goto number_done;
 						}
 					}
 					tc_push_inline(types, "int");
 					writestr(S, "ipush %s\n", at->token->word); 
-					goto typecheck_done;
+					number_done:
+					break;
 				}
 				case TYPE_STRING: 
 					tc_push_inline(types, "string");
 					writestr(S, "ipush %s\n", at->token->word); 
-					goto typecheck_done;
+					break;
 				case TYPE_ASSIGN: {
 					
-					goto typecheck_done;
+					break;
 				}
 				case TYPE_IDENTIFIER: {
 					TreeVariable* var = find_variable(S, at->token->word);
@@ -676,26 +737,14 @@ generate_expression(CompileState* S, ExpressionNode* expression) {
 						writestr(S, "ilload %d", var->offset);
 					}
 					writestr(S, COMMENT("%s"), var->identifier);
-					goto typecheck_done;
+					break;
 				}
 			}
-			goto typecheck_done;
-			TypecheckObject *popa, *popb;
-			typecheck:
-			popb = tc_pop(types);
-			if (!popa) comp_error(S, "malformed expression");
-			popa = tc_pop(types);
-			if (!popb) comp_error(S, "malformed expression");
-			if (strcmp(popa->datatype, popb->datatype)) {
-				comp_error(S, "attempt to perform arithmetic on mismatched types (%s) and (%s)", popa->datatype, popb->datatype);
-			}
-			tc_append(types, popa);
-			typecheck_done:;
 		}
 		at = at->next;
 	}
 
-	return types;
+	return tc_pop(types);
 }
 
 static void
@@ -707,7 +756,12 @@ compile_assignment(CompileState* S) {
 	TypecheckObject* t = generate_expression(S, compile_expression(S, S->node_focus->words->next->token));
 	/* no structs yet, should only be a single var name */
 	TreeVariable* local = find_variable(S, S->node_focus->words->token->word);
-	if (strcmp(t->datatype, local->datatype)) {
+	if (!strcmp(local->datatype, "float") && !strcmp(t->datatype, "int")) {
+		/* implicit cast to int */
+		writestr(S, "itof 0 %s", COMMENT("implicit float->int assignment cast"));
+	} else if (!strcmp(local->datatype, "int") && !strcmp(t->datatype, "float")) {
+		writestr(S, "ftoi 0 %s", COMMENT("implicit int->float assignment cast"));
+	} else if (strcmp(t->datatype, local->datatype)) {
 		comp_error(S,
 			"attempt to assign expression that results in type (%s) to variable (%s). expected type (%s)", 
 			t->datatype, 

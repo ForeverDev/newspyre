@@ -80,6 +80,7 @@ struct Tree {
 };
 
 TreeBlock* generate_tree(Token*);
+
 void print_block(TreeBlock*, unsigned int);
 
 #endif

@@ -50,7 +50,7 @@ func map(n : float, a : float, b : float, c : float, d : float) -> float {
 	return (n - a) / (b - a) * (d - c) + c;
 }
 
-func draw_mandelbrot(size : float, iterations : float) -> null {
+func mandel_draw(size : float, iterations : float) -> null {
 	x_pos : float;
 	y_pos : float;
 	iter : float;
@@ -126,7 +126,7 @@ func main() -> null {
 	println("recursive fibonacci of %d calculated to be: %d\n", input, fibonacci(input));
 	println("now printing a grid of size %d x %d\n", grid_x, grid_y);
 	print_grid(grid_x, grid_y, "X");
-	draw_mandelbrot(50.0, 1000.0);
+	mandel_draw(50.0, 100.0);
 
 	
 }

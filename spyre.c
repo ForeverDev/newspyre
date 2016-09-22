@@ -237,6 +237,7 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 	/* general purpose vars for interpretation */
 	int64_t a, c;
 	double b;
+	uint8_t *pa, *pb;
 
 	/* IP saver */
 	uint8_t ipsave = 0;
@@ -257,7 +258,7 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 		&&lor, &&land, &&padd, &&psub, &&log,
 		&&vret, &&dbon, &&dboff, &&dbds, &&cjnz,
 		&&cjz, &&cjmp, &&ilnsave, &&ilnload,
-		&&flload, &&flsave
+		&&flload, &&flsave, &&ftoi, &&itof
 	};
 
 	int total = 0;
@@ -618,6 +619,16 @@ Spy_execute(const char* filename, uint32_t option_flags, int argc, char** argv) 
 
 	flsave:
 	Spy_saveFloat(&S, &S.bp[Spy_readInt32(&S)*8 + 8], Spy_popFloat(&S));
+	goto dispatch;
+
+	ftoi:
+	Spy_pushFloat(&S, (double)Spy_popInt(&S));
+	goto dispatch;
+	
+	/* ***NOTE*** THIS ADDRESSES OFF THE TOP OF THE STACK */
+	itof:
+	a = Spy_readInt32(&S);
+	Spy_saveFloat(&S, &S.sp[-a*8], (double)(*(int64_t *)&S.sp[-a*8]));
 	goto dispatch;
 
 	done:
